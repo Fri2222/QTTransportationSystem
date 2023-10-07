@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/">
+        <file>backgroundPic.jpg</file>
+        <file>icon/9.svg</file>
+        <file>icon/1.svg</file>
+        <file>icon/2.svg</file>
+        <file>icon/3.svg</file>
+        <file>icon/4.svg</file>
+        <file>icon/5.svg</file>
+        <file>icon/6.svg</file>
+        <file>icon/7.svg</file>
+        <file>icon/8.svg</file>
+    </qresource>
+</RCC>
