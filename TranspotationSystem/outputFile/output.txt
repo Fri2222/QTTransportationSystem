@@ -1,0 +1,64 @@
+
+ff: parsing domain file
+domain 'BUG' defined
+ ... done.
+ff: parsing problem file
+problem 'ORDER_0_P' defined
+ ... done.
+
+
+translating negated cond for predicate =
+translating negated cond for predicate WITH
+translating negated cond for predicate STEEL-IN
+translating negated cond for predicate EMPTY
+translating negated cond for predicate CLEAR
+translating negated cond for predicate BOTTOM
+
+ff: search configuration is Enforced Hill-Climbing, if that fails then best-first search.
+Metric is plan length.
+NO COST MINIMIZATION (and no cost-minimizing relaxed plans).
+
+Cueing down from goal distance:   15 into depth [1]
+                                  13            [1][2]
+                                  12            [1][2]
+                                  11            [1]
+                                  10            [1][2]
+                                   9            [1][2][3][4][5][6]
+                                   8            [1][2]
+                                   6            [1]
+                                   5            [1]
+                                   2            [1]
+                                   1            [1]
+                                   0            
+
+ff: found legal plan as follows
+step    0: GET-IN YU SIXALXLETRUCK LOCATION1
+        1: MOVE-STEEL-CONTAINER BAR_0 CONTAINER_SIXALXLETRUCK SIXALXLETRUCK LOCATION1
+        2: DRIVE-WAY SIXALXLETRUCK LOCATION1 LOCATION3 YU
+        3: UNLOAD-STEEL-CONTAINER BAR_0 SIXALXLETRUCK CONTAINER_SIXALXLETRUCK LOCATION3
+        4: DRIVE-WAY SIXALXLETRUCK LOCATION3 LOCATION4 YU
+        5: GET-IN WANG FIVEAXLETRUCK LOCATION1
+        6: MOVE-STEEL-CONTAINER SECTION_2 CONTAINER_FIVEAXLETRUCK FIVEAXLETRUCK LOCATION1
+        7: DRIVE-WAY FIVEAXLETRUCK LOCATION1 LOCATION4 WANG
+        8: UNLOAD-STEEL-CONTAINER SECTION_2 FIVEAXLETRUCK CONTAINER_FIVEAXLETRUCK LOCATION4
+        9: DRIVE-WAY FIVEAXLETRUCK LOCATION4 LOCATION1 WANG
+       10: GET-OUT WANG FIVEAXLETRUCK LOCATION1
+       11: GET-IN WANG FOURAXLETRUCK LOCATION1
+       12: MOVE-STEEL-CONTAINER PLATE_3 CONTAINER_FOURAXLETRUCK FOURAXLETRUCK LOCATION1
+       13: DRIVE-WAY FOURAXLETRUCK LOCATION1 LOCATION2 WANG
+       14: UNLOAD-STEEL-CONTAINER PLATE_3 FOURAXLETRUCK CONTAINER_FOURAXLETRUCK LOCATION2
+       15: DRIVE-WAY FOURAXLETRUCK LOCATION2 LOCATION1 WANG
+       16: MOVE-STEEL-CONTAINER PIPE_1 CONTAINER_FOURAXLETRUCK FOURAXLETRUCK LOCATION1
+       17: DRIVE-WAY FOURAXLETRUCK LOCATION1 LOCATION4 WANG
+       18: DRIVE-WAY FOURAXLETRUCK LOCATION4 LOCATION5 WANG
+       19: UNLOAD-STEEL-CONTAINER PIPE_1 FOURAXLETRUCK CONTAINER_FOURAXLETRUCK LOCATION5
+plan cost: 9.895679
+
+time spent:    0.01 seconds instantiating 5325 easy, 0 hard action templates
+               0.01 seconds reachability analysis, yielding 178 facts and 955 actions
+               0.01 seconds creating final representation with 154 relevant facts, 17 relevant fluents
+               0.04 seconds computing LNF
+               0.01 seconds building connectivity graph
+               0.21 seconds searching, evaluating 349 states, to a max depth of 6
+               0.29 seconds total time
+

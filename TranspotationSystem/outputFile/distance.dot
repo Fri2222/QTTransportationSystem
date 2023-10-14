@@ -1,0 +1,12 @@
+digraph DistanceGraph {
+location1 -> location2 [label="5"];
+location2 -> location1 [label="5"];
+location3 -> location1 [label="7"];
+location1 -> location3 [label="7"];
+location3 -> location4 [label="5"];
+location4 -> location3 [label="5"];
+location1 -> location4 [label="10"];
+location4 -> location1 [label="10"];
+location4 -> location5 [label="1"];
+location5 -> location4 [label="1"];
+}

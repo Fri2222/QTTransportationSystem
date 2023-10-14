@@ -1,0 +1,13 @@
+digraph YU {
+start [shape=ellipse, label=start]
+start -> LOCATION1_0[ label="driver:YU", fontsize=8]
+LOCATION1_0 [shape=box, label=LOCATION1_0];
+LOCATION3_0 [shape=box, label=LOCATION3_0];
+LOCATION1_0->LOCATION3_0[label ="1. SIXALXLETRUCK"];
+LOCATION3_0->LOCATION3_4[label ="BAR_0"fontsize=8];
+LOCATION3_4 [shape=box, label=LOCATION3_4];
+LOCATION4_4 [shape=box, label=LOCATION4_4];
+LOCATION3_4->LOCATION4_4[label ="2. SIXALXLETRUCK"];
+end [shape=ellipse, label=end]
+LOCATION4_4 -> end 
+}

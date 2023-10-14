@@ -1,0 +1,29 @@
+digraph WANG {
+start [shape=ellipse, label=start]
+start -> LOCATION1_0[ label="driver:WANG", fontsize=8]
+LOCATION1_0 [shape=box, label=LOCATION1_0];
+LOCATION4_0 [shape=box, label=LOCATION4_0];
+LOCATION1_0->LOCATION4_0[label ="1. FIVEAXLETRUCK"];
+LOCATION4_0->LOCATION4_4[label ="SECTION_2"fontsize=8];
+LOCATION4_4 [shape=box, label=LOCATION4_4];
+LOCATION1_4 [shape=box, label=LOCATION1_4];
+LOCATION4_4->LOCATION1_4[label ="2. FIVEAXLETRUCK"];
+LOCATION1_4->LOCATION1_8[label ="PLATE_3"fontsize=8];
+LOCATION1_8 [shape=box, label=LOCATION1_8];
+LOCATION2_8 [shape=box, label=LOCATION2_8];
+LOCATION1_8->LOCATION2_8[label ="3. FOURAXLETRUCK"];
+LOCATION2_8->LOCATION2_12[label ="PLATE_3"fontsize=8];
+LOCATION2_12 [shape=box, label=LOCATION2_12];
+LOCATION1_12 [shape=box, label=LOCATION1_12];
+LOCATION2_12->LOCATION1_12[label ="4. FOURAXLETRUCK"];
+LOCATION1_12->LOCATION1_16[label ="PLATE_3"fontsize=8];
+LOCATION1_16 [shape=box, label=LOCATION1_16];
+LOCATION4_16 [shape=box, label=LOCATION4_16];
+LOCATION1_16->LOCATION4_16[label ="5. FOURAXLETRUCK"];
+LOCATION4_16->LOCATION4_20[label ="PLATE_3"fontsize=8];
+LOCATION4_20 [shape=box, label=LOCATION4_20];
+LOCATION5_20 [shape=box, label=LOCATION5_20];
+LOCATION4_20->LOCATION5_20[label ="6. FOURAXLETRUCK"];
+end [shape=ellipse, label=end]
+LOCATION5_20 -> end 
+}
