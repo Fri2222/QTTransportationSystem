@@ -7,9 +7,10 @@
 #include <QDialog>
 #include <QMessageBox>
 #include <QInputDialog>
-#include <QDebug>
 #include <QFile>
-
+#include <QRegularExpression>
+#include <QDebug>
+#include <QMap>
 namespace Ui {
 class NewOrder;
 }
@@ -33,6 +34,8 @@ private slots:
     void on_recreateButton_clicked();
 
     void onSteelTableViewDoubleClicked(QModelIndex index);
+    void on_planButton_clicked();
+
 private:
     Ui::NewOrder *ui;
     QStandardItemModel driverModel;
@@ -63,6 +66,8 @@ private:
     void querySteel();
     void queryDistance();
     int shiftLicense(QString);
+    void positioningPlan(int &startLine, int &endLine,int &planLength);
+    void generatePicture();
     //保存当前所有复选框的状态
     QMap<int, Qt::CheckState> steelCheckboxStates;
     bool dataIsVaild(int column,double data);
@@ -86,6 +91,16 @@ private:
     QStringList driverLicenseItems;
     QVector<QComboBox*> initialComboBoxArray;
     QVector<QComboBox*> goalComboBoxArray;
+    QLabel *pictureLabel;
+    QStringList picDirList;
+    int currentPicIndex = 0;
+    void getSteelType(QString driveTruck,QString yardName,QStringList & steelTypeList);
+    // 用于存储司机与开车移动的关系
+    QMap<QString, QStringList> driverActions;
+    //用于记录车辆装载钢材的关系
+    QMap<QString, QStringList> loadActions;
+    //用于记录车辆卸载钢材的关系
+    QMap<QString, QStringList> unloadActions;
 
 };
 

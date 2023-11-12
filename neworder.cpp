@@ -3,9 +3,14 @@
 
 NewOrder::NewOrder(QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::NewOrder)
+    ui(new Ui::NewOrder),
+    pictureLabel(nullptr)
 {
     ui->setupUi(this);
+    driverActions.clear();
+    loadActions.clear();
+    pictureLabel = ui->pictureLable;
+    pictureLabel->hide();
     orderID = -1;
     setFixedSize(660,330);
 
@@ -228,16 +233,15 @@ void NewOrder::on_commitButton_clicked()
         {
             // 读取命令输出
             QString output = process.readAllStandardOutput();
-            qDebug() << "Command Output: " << output;
-
             // 将输出保存到文件
-            QFile outputFile("D:/22017/Documents/output.txt");
+            QString outputFilePath = "D:/QtProject/TranspotationSystem/outputFile/output.txt";
+            QFile outputFile(outputFilePath);
             if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text))
             {
                 QTextStream stream(&outputFile);
                 stream << output;
                 outputFile.close();
-                qDebug() << "Output saved to D:/22017/Documents/output.txt";
+                qDebug() << "Output saved to " + outputFilePath;
             }
             else
             {
@@ -254,6 +258,7 @@ void NewOrder::on_commitButton_clicked()
     {
         QMessageBox::warning(this,"警告","请检查订单中的钢材");
     }
+    generatePicture();
 }
 void NewOrder::shiftTableView(bool bDriverWidget,bool bSteelWidget)
 {
@@ -706,6 +711,348 @@ bool NewOrder::dataIsVaild(int column,double data)
     else
         return 0 ;
 }
+void NewOrder::positioningPlan(int &startLine, int &endLine,int &planLength)
+{
+    QFile file("D:/QtProject/TranspotationSystem/outputFile/output.txt");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qDebug() << "无法打开文件";
+        return;
+    }
+
+    QTextStream in(&file);
+    QString line;
+    int lineNumber = 0;
+
+    while (!in.atEnd())
+    {
+        lineNumber++;
+        line = in.readLine();
+
+        // 在这里检查每个搜索字符串是否在当前行中
+        if (line.contains("step"))
+        {
+            startLine = lineNumber;
+        }
+        if(line.contains("plan cost"))
+        {
+            endLine = lineNumber - 1;
+        }
+        planLength = endLine - startLine;
+    }
+
+    file.close();
+}
+void NewOrder::generatePicture()
+{
+    //(\\w+)一个捕获组，用于匹配一个或多个字母、数字或下划线字符
+    //\\s+一个空白字符的匹配，用于匹配一个或多个空格字符
+    QRegularExpression driverRegex("(\\d+): GET-IN (\\w+)\\s+.*");
+
+    //d 动作序号 DRIVE-WAY w 车辆   w 起始点   w 终止点   w 司机
+    // 2: DRIVE-WAY SIXALXLETRUCK LOCATION1 LOCATION4 YU
+    QRegularExpression driveRegex("(\\d+): DRIVE-WAY (\\w+) (\\w+) (\\w+) (\\w+)");
+
+    //d动作序号 MOVE-STEEL-CONTAINER  w 钢材名称  w 货箱  w 车辆  w 地点
+    QRegularExpression loadSCRegex("(\\d+): MOVE-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)");
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+    QRegularExpression loadSSRegex("(\\d+): MOVE-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+)");
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    QRegularExpression unloadSCRegex("(\\d+): UNLOAD-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)");
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+    QRegularExpression unloadSSRegex("(\\d+): UNLOAD-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+)");
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    QFile file("D:/QtProject/TranspotationSystem/outputFile/output.txt");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qDebug() << "无法打开文件";
+        return;
+    }
+
+    QTextStream in(&file);
+    QString line;
+    QStringList driverNameList;
+    QStringList truckTypeList;
+
+    // 使用正则表达式查找匹配项
+    while (!in.atEnd())
+    {
+        line = in.readLine();
+
+        QRegularExpressionMatch driverMatch = driverRegex.match(line);
+        QRegularExpressionMatch driveMatch = driveRegex.match(line);
+        QRegularExpressionMatch loadSCMatch = loadSCRegex.match(line);
+        QRegularExpressionMatch loadSSMatch = loadSSRegex.match(line);
+        QRegularExpressionMatch unloadSCMatch = unloadSCRegex.match(line);
+        QRegularExpressionMatch unloadSSMatch = unloadSSRegex.match(line);
+        if (driverMatch.hasMatch())
+        {
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = driverMatch.captured(1);
+            QString driverName = driverMatch.captured(2);
+
+            // 检查司机是否已经在Map中
+            if (!driverActions.contains(driverName))
+            {
+                driverActions.insert(driverName, QStringList());
+                driverNameList.append(driverName);
+            }
+
+        }
+        if (driveMatch.hasMatch())
+        {
+            //d 动作序号 w 车辆 w 起始点 w 终止点 w 司机
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = driveMatch.captured(1);
+            QString driveTruck = driveMatch.captured(2);
+            QString startYard = driveMatch.captured(3);
+            QString endYard = driveMatch.captured(4);
+            QString driverName = driveMatch.captured(5);
+
+            // 检查司机是否已经在Map中
+            if (!driverActions.contains(driverName))
+            {
+                driverActions.insert(driverName, QStringList());
+                driverNameList.append(driverName);
+            }
+            // 将操作行号添加到司机的操作列表中
+            driverActions[driverName].append(lineNumber);
+            driverActions[driverName].append(driveTruck);
+            driverActions[driverName].append(startYard);
+            driverActions[driverName].append(endYard);
+        }
+        if (loadSCMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = loadSCMatch.captured(1);
+            QString steelType = loadSCMatch.captured(2);
+            QString truckType = loadSCMatch.captured(4);
+            QString yardName = loadSCMatch.captured(5);
 
 
+            // 将操作行号添加到装卸的操作列表中
+            loadActions[truckType].append(truckType);
+            loadActions[truckType].append(lineNumber);
+            loadActions[truckType].append(steelType);
+            loadActions[truckType].append(yardName);
+        }
+        if (loadSSMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
 
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = loadSSMatch.captured(1);
+            QString steelType = loadSSMatch.captured(2);
+            QString truckType = loadSSMatch.captured(4);
+            QString yardName = loadSSMatch.captured(5);
+
+            // 检查车辆是否已经在Map中
+
+            // 将操作行号添加到装卸的操作列表中
+            loadActions[truckType].append(truckType);
+            loadActions[truckType].append(lineNumber);
+            loadActions[truckType].append(steelType);
+            loadActions[truckType].append(yardName);
+        }
+        if (unloadSCMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = unloadSCMatch.captured(1);
+            QString steelType = unloadSCMatch.captured(2);
+            QString truckType = unloadSCMatch.captured(3);
+            QString yardName = unloadSCMatch.captured(5);
+
+            // 检查车辆是否已经在Map中
+            if (!unloadActions.contains(truckType))
+            {
+                unloadActions.insert(truckType, QStringList());
+                truckTypeList.append(truckType);
+            }
+            // 将操作行号添加到装卸的操作列表中
+            unloadActions[truckType].append(truckType);
+            unloadActions[truckType].append(lineNumber);
+            unloadActions[truckType].append(steelType);
+            unloadActions[truckType].append(yardName);
+        }
+        if (unloadSSMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = unloadSSMatch.captured(1);
+            QString steelType = unloadSSMatch.captured(2);
+            QString truckType = unloadSSMatch.captured(3);
+            QString yardName = unloadSSMatch.captured(5);
+
+            // 检查车辆是否已经在Map中
+            if (!unloadActions.contains(truckType))
+            {
+                unloadActions.insert(truckType, QStringList());
+                truckTypeList.append(truckType);
+            }
+            // 将操作行号添加到装卸的操作列表中
+            unloadActions[truckType].append(truckType);
+            unloadActions[truckType].append(lineNumber);
+            unloadActions[truckType].append(steelType);
+            unloadActions[truckType].append(yardName);
+        }
+    }
+    qDebug() << "loadActions" << loadActions;
+    qDebug() << "unloadActions" << unloadActions;
+
+    file.close();
+
+    qDebug()<<driverActions;
+
+    foreach (QString driverName, driverNameList)
+    {
+        QString dotFileNamePath = QString("D:/QtProject/TranspotationSystem/outputFile/%1.dot").arg(driverName);
+        QFile dotFile(dotFileNamePath);
+
+        if (!dotFile.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            qDebug() << "无法创建或打开 dot 文件: " << dotFileNamePath;
+            continue;
+        }
+
+        QTextStream dotStream(&dotFile);
+
+        // 写入 dot 文件头部
+        dotStream << "digraph " << driverName << " {" << "\n" ;
+        dotStream << "start [shape=ellipse, label=start]" << "\n";
+
+
+        // 获取该司机的所有操作行号
+        QStringList actions = driverActions.value(driverName);
+        QString previousEndYard; // 上一个endYard
+        QStringList steelTypeList;
+        steelTypeList.clear();
+        for (int i = 0; i < actions.size(); i += 4)
+        {
+            QString actionLineNumber = actions[i];
+            QString driveTruck = actions[i + 1];
+            QString startYard = actions[i + 2];
+            QString endYard = actions[i + 3];
+            getSteelType(driveTruck,startYard,steelTypeList);
+            qDebug() << "steelList:" <<steelTypeList;
+            QString joinedSteel = steelTypeList.join("\n");
+            startYard = startYard +"_" + QString::number(i);
+            endYard = endYard +"_" + QString::number(i);
+            if (i == 0)
+            {
+                // 将start连接到第一个startName
+                dotStream << "start -> " << startYard << "[ label=\"driver:"+ driverName +"\", fontsize=8]" "\n";
+                dotStream << "start -> " << startYard << "[label =\"" +joinedSteel+"\"fontsize=8];\n";
+                dotStream << startYard<< " [shape=box, label="<< startYard << "];" <<"\n";
+                dotStream << endYard<< " [shape=box, label="<< endYard << "];" <<"\n";
+                dotStream << startYard << "->" << endYard << "[label =\"" + QString::number((i/4)+1) + ". "+ driveTruck +"\"];\n";
+                previousEndYard = endYard;
+            }
+            else
+            {
+                dotStream << previousEndYard << "->" << startYard << "[label =\"" +joinedSteel+"\"fontsize=8];\n";
+                dotStream << startYard<< " [shape=box, label="<< startYard << "];" <<"\n";
+                dotStream << endYard<< " [shape=box, label="<< endYard << "];" <<"\n";
+                dotStream << startYard << "->" << endYard << "[label =\"" + QString::number((i/4)+1) + ". "+ driveTruck +"\"];\n";
+                previousEndYard = endYard;
+            }
+            }
+
+        // 写入 dot 文件尾部
+        dotStream << "end [shape=ellipse, label=end]" << "\n";
+        dotStream << previousEndYard <<" -> end \n";
+        dotStream << "}" << "\n";
+
+        dotFile.close();
+
+        qDebug() << "生成 dot 文件成功: " << dotFileNamePath;
+
+        QProcess process;
+        // 设置要执行的命令
+        QString command = "D:/software/graphviz/bin/dot";
+        QStringList arguments;
+        arguments << "-Tpng";
+        arguments << dotFileNamePath;
+        QString outputPath = "D:/QtProject/TranspotationSystem/outputFile/" + driverName + ".png";
+        arguments << "-o" << outputPath;
+        picDirList << outputPath;
+        // 启动进程
+        process.start(command,arguments);
+
+        // 等待进程完成
+        if (process.waitForFinished())
+        {
+            // 将输出保存到文件
+            //QPixmap processPng("D:/QtProject/TranspotationSystem/outputFile/"+driverName+".png");
+            QPixmap processPng(outputPath);
+            pictureLabel->setPixmap(processPng);
+            ui->label->setVisible(false);
+            ui->steelLabel->setVisible(false);
+            ui->steelTableView->setVisible(false);
+            ui->driverTableView->setVisible(false);
+            ui->truckTableView->setVisible(false);
+            ui->steelLabel->setVisible(false);
+            pictureLabel->show();
+            if (processPng.isNull())
+            {
+                qDebug() << "Failed to load image from: " << processPng;
+            }
+        }
+        else
+        {
+            qDebug() << "Command Failed to Execute with error: " << process.errorString();
+        }
+
+    }
+}
+
+void NewOrder::getSteelType(QString driveTruck,QString yardName, QStringList & steelTypeList)
+{
+    int startLine = 0,endLine = 0,planLength = 0;
+    positioningPlan(startLine,endLine,planLength);
+    QStringList removeSteelTypeList;
+    // 获取该driveTruck对应的actions
+    QStringList loadactions = loadActions.value(driveTruck);
+    QStringList unloadactions = unloadActions.value(driveTruck);
+    // 遍历actions，查找包含特定truckType的项目
+    for (int i = 0; i < loadactions.size(); i += 4)
+    {
+        if (loadactions[i] == driveTruck && loadactions[i+3] == yardName)
+        {
+            QString steelType = loadactions.at(i+2);
+            steelTypeList.append(steelType);
+        }
+    }
+    for (int j = 0; (j + 3) < unloadactions.size(); j += 3)
+    {
+        if (unloadactions[j] == driveTruck && unloadactions[j+3] == yardName)
+        {
+            QString steelType = unloadactions.at(j+2);
+            removeSteelTypeList.append(steelType);
+
+        }
+    }
+    for (const QString &steelToRemove : removeSteelTypeList)
+    {
+        steelTypeList.removeAll(steelToRemove);
+    }
+}
+
+
+void NewOrder::on_planButton_clicked()
+{
+    if (!picDirList.isEmpty())
+    {
+        QPixmap processPng(picDirList[currentPicIndex]);
+        pictureLabel->setPixmap(processPng);
+
+        currentPicIndex = (currentPicIndex + 1) % picDirList.size();
+    }
+}

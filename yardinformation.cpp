@@ -3,9 +3,11 @@
 
 YardInformation::YardInformation(QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::YardInformation)
+    ui(new Ui::YardInformation),
+    pictureLabel(nullptr)
 {
     ui->setupUi(this);
+    pictureLabel = ui->pictureLabel;
     ui->tableView->setModel(&mmodel);
     ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -65,33 +67,95 @@ void YardInformation::showYard()
 void YardInformation::showDistance()
 {
     QSqlQuery distanceQuery;
-    QString sql = "SELECT *FROM Distance";
-    if(distanceQuery.exec(sql))
+    QString sql = "SELECT * FROM Distance";
+    if (distanceQuery.exec(sql))
     {
         mmodel.clear();
-        mmodel.setHorizontalHeaderLabels({"起始货场名称","终止货场名称","距离"});
+        mmodel.setHorizontalHeaderLabels({"货场名称","另一货场名称","距离"});
 
-        while(distanceQuery.next())
+        //创建文件并且打开后清空文件内容
+        QFile file("D:/QtProject/TranspotationSystem/outputFile/distance.dot");
+        file.open(QIODevice::Append | QIODevice::Text);
+        file.resize(0);
+        QTextStream stream(&file);
+        stream << "digraph DistanceGraph {" << "\n";
+        QSet<QString> processedRoads; // 用于跟踪已处理的道路
+        while (distanceQuery.next())
         {
             int yardID = distanceQuery.value("yardID").toInt();
             int otherYardId = distanceQuery.value("otherYardId").toInt();
             int distance = distanceQuery.value("distance").toInt();
             QString yardName = "";
             QString otherYardName = "";
-            IDQueryYardName(yardID,yardName);
-            IDQueryYardName(otherYardId,otherYardName);
+            IDQueryYardName(yardID, yardName);
+            IDQueryYardName(otherYardId, otherYardName);
+
+            // 构建道路标识符，确保它在两个方向上都是唯一的
+            QString roadIdentifier = yardName + "-" + otherYardName;
+
+            if (!processedRoads.contains(roadIdentifier))
+            {
+                processedRoads.insert(roadIdentifier); // 添加道路标识符以防止重复处理
+
+                // 将道路连接写入 DOT 文件，包括双向箭头
+                 stream << yardName << " -> " << otherYardName <<
+                    " [label=\"" << distance << "\"];" << "\n";
+            }
+
             QList<QStandardItem *> distanceItem;
             distanceItem.append(new QStandardItem(yardName));
             distanceItem.append(new QStandardItem(otherYardName));
             distanceItem.append(new QStandardItem(QString::number(distance)));
             mmodel.appendRow(distanceItem);
         }
+        stream << "}";
+        file.close();
     }
     else
     {
-        qDebug() << "Database Error:" << distanceQuery.lastError().text();
+        qDebug() << "fail to query distance";
     }
+    generatePicture();
 }
 
+void YardInformation::generatePicture()
+{
+    // 设置工作目录
+    QString workingDirectory = "D:/QtProject/TranspotationSystem/outputFile";
 
+    // 创建一个 QProcess 对象
+    QProcess process;
+
+    // 设置工作目录
+    process.setWorkingDirectory(workingDirectory);
+
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("PATH", "D:/software/graphviz/bin/"); // 添加 Graphviz 的路径
+    process.setProcessEnvironment(env);
+
+    // 设置要执行的命令和参数
+    QString command = "D:/software/graphviz/bin/dot";
+    QStringList arguments;
+    arguments << "-Tpng D:/QtProject/TranspotationSystem/outputFile/distance.dot";
+    arguments << "-o D:/QtProject/TranspotationSystem/outputFile/distance.png";
+
+    // 启动进程
+    process.start(command,arguments);
+
+    // 等待进程完成
+    if (process.waitForFinished())
+    {
+        // 将输出保存到文件
+        QString outputPath = "D:/QtProject/TranspotationSystem/outputFile/distance.png";
+        QPixmap distancePng(outputPath);
+        pictureLabel->setPixmap(distancePng);
+        pictureLabel->show();
+        qDebug() << "Command Success to Execute";
+    }
+    else
+    {
+        qDebug() << "Command Failed to Execute with error: " << process.errorString();
+    }
+
+}
 

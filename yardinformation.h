@@ -5,6 +5,7 @@
 #include <QStandardItemModel>
 #include <QtSql>
 #include <QMessageBox>
+#include <iostream>
 namespace Ui {
 class YardInformation;
 }
@@ -28,6 +29,8 @@ private:
     Ui::YardInformation *ui;
     QStandardItemModel mmodel;
     void IDQueryYardName(int yardId,QString &yardName);
+    void generatePicture();
+    QLabel *pictureLabel;
 };
 
 #endif // YARDINFORMATION_H
