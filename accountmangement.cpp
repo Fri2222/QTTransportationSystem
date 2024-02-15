@@ -38,4 +38,7 @@ void AccountMangement::on_newOrderButton_clicked()
 {
 
 }
-
+void AccountMangement::setUser(User user)
+{
+    currentUser = user;
+}

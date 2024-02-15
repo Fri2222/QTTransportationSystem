@@ -8,6 +8,8 @@
 #include "basicinformation.h"
 #include "cargoinformation.h"
 #include "yardinformation.h"
+#include "User.h"
+#include "enroll.h"
 #include <QPushButton>
 
 namespace Ui {
@@ -22,6 +24,8 @@ public:
     explicit main_interface(QWidget *parent = nullptr);
     ~main_interface();
     void initPage();
+    void setLoginUser(User *user);
+
 private slots:
     void onNavigationButtonClicked();
 
@@ -36,7 +40,7 @@ private:
     QToolButton *cargoInformationButton;
     QToolButton *yardInformationButton;
     QToolButton *mLastPressedButton;
-
+    User user;
 };
 
 #endif // MAIN_INTERFACE_H

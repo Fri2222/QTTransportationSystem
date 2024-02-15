@@ -5,6 +5,7 @@
 #include "neworder.h"
 #include "orderandaccount.h"
 #include <QPushButton>
+#include "User.h"
 
 namespace Ui {
 class AccountMangement;
@@ -18,7 +19,7 @@ public:
     explicit AccountMangement(QWidget *parent = nullptr);
     ~AccountMangement();
     void initPage();
-
+    void setUser(User user);
 private slots:
     void on_newOrderButton_clicked();
 
@@ -29,6 +30,16 @@ private:
     QPushButton *newOrderButton;
     QPushButton *orderHistoryButton;
     QPushButton *basicInformationButton;
+    User currentUser;
+    User &operator=(const User &user)
+    {
+        currentUser.userId = user.userId;
+        currentUser.userName = user.userName;
+        currentUser.password = user.password;
+        currentUser.authority = user.authority;
+        return currentUser;
+    }
+    void showAccount();
     QPushButton *changePasswordButton;
 
 };

@@ -13,23 +13,28 @@ SOURCES += \
     basicinformation.cpp \
     cargoinformation.cpp \
     driver.cpp \
+    enroll.cpp \
     login_window.cpp \
     main.cpp \
     main_interface.cpp \
     neworder.cpp \
     orderandaccount.cpp \
+    orderconfirmation.cpp \
     truck.cpp \
     yardinformation.cpp
 
 HEADERS += \
+    User.h \
     accountmangement.h \
     basicinformation.h \
     cargoinformation.h \
     driver.h \
+    enroll.h \
     login_window.h \
     main_interface.h \
     neworder.h \
     orderandaccount.h \
+    orderconfirmation.h \
     truck.h \
     yardinformation.h
 
@@ -38,10 +43,12 @@ FORMS += \
     basicinformation.ui \
     cargoinformation.ui \
     driver.ui \
+    enroll.ui \
     login_window.ui \
     main_interface.ui \
     neworder.ui \
     orderandaccount.ui \
+    orderconfirmation.ui \
     truck.ui \
     yardinformation.ui
 

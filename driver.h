@@ -28,7 +28,6 @@ public:
 private:
     Ui::Driver *ui;
     QStandardItemModel mmodel;
-
 };
 
 #endif // DRIVER_H

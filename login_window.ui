@@ -266,7 +266,7 @@ QWidget#bg {
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>150</width>
+              <width>130</width>
               <height>20</height>
              </size>
             </property>
@@ -275,7 +275,7 @@ QWidget#bg {
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <property name="spacing">
-             <number>80</number>
+             <number>30</number>
             </property>
             <property name="sizeConstraint">
              <enum>QLayout::SetDefaultConstraint</enum>
@@ -288,6 +288,12 @@ QWidget#bg {
             </property>
             <item>
              <widget class="QPushButton" name="loginButton">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string>登陆</string>
               </property>
@@ -297,7 +303,32 @@ QWidget#bg {
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="enrollButton">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>注册</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="exitButton">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string>退出</string>
               </property>
@@ -315,7 +346,7 @@ QWidget#bg {
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>150</width>
+              <width>140</width>
               <height>20</height>
              </size>
             </property>

@@ -6,6 +6,9 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QSqlDatabase>
+#include <QLineEdit>
+#include "User.h"
+#include "enroll.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,7 +25,10 @@ public:
 private:
     Ui::MainWindow *ui;
     QSqlDatabase *db;
-
+    QLineEdit *usernameLine;
+    QLineEdit *passwordLine;
+    User *user;
+    Enroll *enrollDialog;
 protected:
     void paintEvent(QPaintEvent *event)
     {
@@ -43,5 +49,8 @@ protected:
 private slots:
     void on_loginButton_clicked();
     void on_exitButton_clicked();
+    void on_usernameLine_editingFinished();
+    void on_passwordLine_editingFinished();
+    void on_enrollButton_clicked();
 };
 #endif // LOGIN_WINDOW_H

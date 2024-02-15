@@ -1,6 +1,6 @@
 #include "neworder.h"
 #include "ui_neworder.h"
-
+#include "orderconfirmation.h"
 NewOrder::NewOrder(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::NewOrder),
@@ -13,6 +13,9 @@ NewOrder::NewOrder(QWidget *parent) :
     pictureLabel->hide();
     orderID = -1;
     setFixedSize(660,330);
+
+    ui->planButton->hide();
+    ui->recreateButton->hide();
 
     bDriverWidget = false;
     bSteelWidget = true;
@@ -41,7 +44,6 @@ NewOrder::NewOrder(QWidget *parent) :
     showTruck();
     showSteel();
     int lastRow = steelModel.rowCount();
-    //int lastColumn = steelModel.columnCount();
     for(int row = 0;row < lastRow ;row ++)
     {
         for(int conlumn = 6;conlumn < 7 ;conlumn++)
@@ -85,7 +87,7 @@ void NewOrder::on_commitButton_clicked()
     QStringList selectedSteelInitialPositions;
     QStringList selectedSteelGoalPositions;
     bool bSelectedSteel = false;
-    bSelectedSteel = selectedSteel(steelIDItems,
+    bSelectedSteel = scanSelectedSteel(steelIDItems,
                                   selectedSteelType,
                                   selectedSteelLengths,
                                   selectedSteelQuantitys,
@@ -93,6 +95,18 @@ void NewOrder::on_commitButton_clicked()
                                   selectedSteelPrioritys,
                                   selectedSteelInitialPositions,
                                   selectedSteelGoalPositions);
+    if(bSelectedSteel)
+    {
+        orderConfirmation* orderWindow = new orderConfirmation();
+        orderWindow->sendID(steelIDItems);
+        orderWindow->sendType(selectedSteelType);
+        orderWindow->sendWeight(selectedSteelWeights);
+        orderWindow->sendInitialPosition(selectedSteelInitialPositions);
+        orderWindow->sendGoalPosition(selectedSteelGoalPositions);
+        orderWindow->sendYardItem(yardItems);
+        orderWindow->showOrder();
+        orderWindow->exec();
+    }
     if(bSelectedSteel)
     {
         QFile file("D://MetricFF//order_"+QString::number(steelIDItems[0])+"_pro.pddl");
@@ -104,7 +118,7 @@ void NewOrder::on_commitButton_clicked()
 
             QString define = "";
     //domain定义
-            define.append("(define (problem order_"+QString::number(steelIDItems[0])+"_p ) (:domain bug)\n");
+            define.append("(define (problem order_"+QString::number(steelIDItems[0])+"_p ) (:domain transportartionSystem)\n");
         //object定义
         //driver定义
             define.append("(:objects\n" + driverNameItems.join(" ") +" - driver\n");
@@ -128,7 +142,7 @@ void NewOrder::on_commitButton_clicked()
     //init定义
             QString init = "";
         //time-cost money-cost函数定义
-            init.append("\n(:init\n(= (time-cost) 0)\n(= (money-cost) 0)\n");
+            init.append("\n(:init\n(world)\n(= (time-cost) 0)\n(= (money-cost) 0)\n");
         //driver的姓名、驾照、位置（未写）定义
             for (int i = 0; i < driverNameItems.size(); ++i)
             {
@@ -163,7 +177,6 @@ void NewOrder::on_commitButton_clicked()
                 init.append("(= (breadth-container container_"+truckType+") "+truckBreadthItems[i]+")\n");
                 init.append("(= (current-weight container_"+truckType+") 0)\n");
                 init.append("(= (max-weight container_"+truckType+")"+truckMaxWeightItems[i]+")\n\n");
-
             }
             init.append("\n");
         //道路的定义
@@ -183,20 +196,22 @@ void NewOrder::on_commitButton_clicked()
                 init.append("(= (weight-steel "+ selectedSteelType[i] +"_"+ QString::number(steelIDItems[i])+") " +QString::number(selectedSteelWeights[i])+" )\n");
                 init.append("(clear "+selectedSteelType[i] +"_"+ QString::number(steelIDItems[i])+")\n");
                 const QString& steelType = selectedSteelType[i];
-                const QString& steelPosition = selectedSteelInitialPositions[i];
-                init.append("( steel-in "+ steelType + "_"+QString::number(steelIDItems[i]) + " " + steelPosition + ")\n");
-
+                const QString& steelInitialPosition = selectedSteelInitialPositions[i];
+                const QString& steelGoalPosition = selectedSteelGoalPositions[i];
+                init.append("(q1 " +steelType + "_"+QString::number(steelIDItems[i]) + ")\n");
+                init.append("( steel-in "+ steelType + "_"+QString::number(steelIDItems[i]) + " " + steelInitialPosition + ")\n");
+                init.append("( set-goal-location "+ steelType + "_"+QString::number(steelIDItems[i]) + " " + steelGoalPosition + ")\n");
             }
             init.append(")\n");
             stream << init;
     //goal
             QString goal = "";
             goal.append("(:goal (and\n");
+            goal.append("(world)\n");
             for(int i = 0;i < selectedSteelType.size();i++)
             {
                 const QString& steelType = selectedSteelType[i];
-                const QString& steelPosition = selectedSteelGoalPositions[i];
-                goal.append("( steel-in "+ steelType + "_"+QString::number(steelIDItems[i]) + " " + steelPosition + ")\n");
+                goal.append("( order-completed "+ steelType + "_"+QString::number(steelIDItems[i]) + ")\n");
             }
             goal.append(")\n");
             goal.append(")\n");
@@ -207,7 +222,6 @@ void NewOrder::on_commitButton_clicked()
             metric.append("\n");
             stream << metric;
             stream << "\n)";
-            QMessageBox::information(this,"提示","您已经成功创建订单");
             file.close();
         }
 //命令行执行
@@ -223,34 +237,40 @@ void NewOrder::on_commitButton_clicked()
         // 设置要执行的命令和参数
         QString command = "ff-v2.1.exe";
         QStringList arguments;
-        arguments << "-o" << "bug.pddl" << "-f" << "order_"+QString::number(steelIDItems[0])+"_pro.pddl" << "-s" << "0";
+        arguments << "-o" << "TransportationSystem_order_"+QString::number(steelIDItems[0])+"_pro.pddl" << "-f" << "order_"+QString::number(steelIDItems[0])+"_pro.pddl" << "-s" << "0";
 
         // 启动进程
         process.start(command, arguments);
-
+        qDebug() << command<<arguments;
         // 等待进程完成
-        if (process.waitForFinished())
+        if (process.waitForFinished(10000))
         {
             // 读取命令输出
-            QString output = process.readAllStandardOutput();
+            QString output;
+            while (process.canReadLine())
+            {
+                QString line = process.readLine();
+                output.append(line + "\n"); // 将每一行输出追加到字符串中
+            }
+
+            qDebug() << output;
             // 将输出保存到文件
-            QString outputFilePath = "D:/QtProject/TranspotationSystem/outputFile/output.txt";
             QFile outputFile(outputFilePath);
             if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text))
             {
                 QTextStream stream(&outputFile);
                 stream << output;
                 outputFile.close();
-                qDebug() << "Output saved to " + outputFilePath;
+                qDebug() << "PDDL输出文件保存在 " + outputFilePath;
             }
             else
             {
-                qDebug() << "Failed to save output to file!";
+                qDebug() << "无法保存PDDL输出文件!";
             }
         }
         else
         {
-            qDebug() << "Command Failed to Execute!";
+            qDebug() << "PDDL生成程序出错!";
         }
 
     }
@@ -259,6 +279,7 @@ void NewOrder::on_commitButton_clicked()
         QMessageBox::warning(this,"警告","请检查订单中的钢材");
     }
     generatePicture();
+
 }
 void NewOrder::shiftTableView(bool bDriverWidget,bool bSteelWidget)
 {
@@ -452,7 +473,7 @@ void NewOrder::selectedTruck(int &truckID)
         truckID = truckModel.index(row, 0).data().toInt();
     }
 }
-bool NewOrder::selectedSteel(QList<int> &selectedSteelIDs,
+bool NewOrder::scanSelectedSteel(QList<int> &selectedSteelIDs,
                              QStringList &selectedSteelType,
                              QList<double> &selectedSteelLengths,
                              QList<double> &selectedSteelQuantitys,
@@ -498,6 +519,7 @@ bool NewOrder::selectedSteel(QList<int> &selectedSteelIDs,
                 selectedSteelInitialPositions << steelInitialPosition;
                 selectedSteelGoalPositions << steelGoalPositon;
             }
+            qDebug() << "选中的钢材有:"<<selectedSteelType;
         }
     }
     if(!selectedSteelIDs.isEmpty())
@@ -523,15 +545,6 @@ bool NewOrder::selectedSteel(QList<int> &selectedSteelIDs,
 }
 
 
-void NewOrder::writeFile()
-{
-
-}
-
-void NewOrder::writeDefine()
-{
-
-}
 void NewOrder::queryDriver()
 {
     //获取司机姓名和驾照信息
@@ -629,8 +642,6 @@ void NewOrder::queryDistance()
                 }
             }
         }
-
-
     }
     else
     {
@@ -746,28 +757,33 @@ void NewOrder::positioningPlan(int &startLine, int &endLine,int &planLength)
 void NewOrder::generatePicture()
 {
     //(\\w+)一个捕获组，用于匹配一个或多个字母、数字或下划线字符
-    //\\s+一个空白字符的匹配，用于匹配一个或多个空格字符
-    QRegularExpression driverRegex("(\\d+): GET-IN (\\w+)\\s+.*");
+    //d 动作序号 DRIVE-WAY w 司机   w 车辆   w 地点  w 钢材（不捕获）
+    QRegularExpression driverRegex("(\\d+): GET-IN (\\w+) (\\w+) (\\w+) \\w+");
 
-    //d 动作序号 DRIVE-WAY w 车辆   w 起始点   w 终止点   w 司机
+    //d 动作序号 DRIVE-WAY w 司机  w 起始点  w 终止点   w 车辆 w 钢材（不捕获）
     // 2: DRIVE-WAY SIXALXLETRUCK LOCATION1 LOCATION4 YU
-    QRegularExpression driveRegex("(\\d+): DRIVE-WAY (\\w+) (\\w+) (\\w+) (\\w+)");
+    QRegularExpression driveRegex("(\\d+): DRIVE-WAY (\\w+) (\\w+) (\\w+) (\\w+) \\w+", QRegularExpression::MultilineOption);
 
-    //d动作序号 MOVE-STEEL-CONTAINER  w 钢材名称  w 货箱  w 车辆  w 地点
-    QRegularExpression loadSCRegex("(\\d+): MOVE-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)");
-    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
-    QRegularExpression loadSSRegex("(\\d+): MOVE-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+)");
+    //d动作序号 MOVE-STEEL-CONTAINER w 地点 w 车辆   w 钢材名称  w 货箱
+    QRegularExpression loadSCRegex("(\\d+): MOVE-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
     loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
 
-    QRegularExpression unloadSCRegex("(\\d+): UNLOAD-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)");
-    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
-    QRegularExpression unloadSSRegex("(\\d+): UNLOAD-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+)");
+    //d动作序号 MOVE-STEEL-STEEL w 地点  w 车辆  w 上层钢材  w 下层钢材   w 货箱
+    QRegularExpression loadSSRegex("(\\d+): MOVE-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
     loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
 
-    QFile file("D:/QtProject/TranspotationSystem/outputFile/output.txt");
+    //d动作序号 UNLOAD-STEEL-CONTAINER  w 地点  w 车辆  w 钢材   w 货箱
+    QRegularExpression unloadSCRegex("(\\d+): UNLOAD-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    //d动作序号 UNLOAD-STEEL-STEEL  w 地点  w 车辆  w 上层钢材  w 下层钢材   w 货箱
+    QRegularExpression unloadSSRegex("(\\d+): UNLOAD-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    QFile file(outputFilePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        qDebug() << "无法打开文件";
+        qDebug() << "无法打开PDDL输出文件"+outputFilePath;
         return;
     }
 
@@ -799,7 +815,6 @@ void NewOrder::generatePicture()
                 driverActions.insert(driverName, QStringList());
                 driverNameList.append(driverName);
             }
-
         }
         if (driveMatch.hasMatch())
         {
@@ -807,10 +822,10 @@ void NewOrder::generatePicture()
 
             // 获取匹配的操作行号和司机名字
             QString lineNumber = driveMatch.captured(1);
-            QString driveTruck = driveMatch.captured(2);
+            QString driveTruck = driveMatch.captured(5);
             QString startYard = driveMatch.captured(3);
             QString endYard = driveMatch.captured(4);
-            QString driverName = driveMatch.captured(5);
+            QString driverName = driveMatch.captured(2);
 
             // 检查司机是否已经在Map中
             if (!driverActions.contains(driverName))
@@ -830,9 +845,9 @@ void NewOrder::generatePicture()
 
             // 获取匹配的操作行号和司机名字
             QString lineNumber = loadSCMatch.captured(1);
-            QString steelType = loadSCMatch.captured(2);
-            QString truckType = loadSCMatch.captured(4);
-            QString yardName = loadSCMatch.captured(5);
+            QString steelType = loadSCMatch.captured(4);
+            QString truckType = loadSCMatch.captured(3);
+            QString yardName = loadSCMatch.captured(2);
 
 
             // 将操作行号添加到装卸的操作列表中
@@ -847,9 +862,9 @@ void NewOrder::generatePicture()
 
             // 获取匹配的操作行号和司机名字
             QString lineNumber = loadSSMatch.captured(1);
-            QString steelType = loadSSMatch.captured(2);
-            QString truckType = loadSSMatch.captured(4);
-            QString yardName = loadSSMatch.captured(5);
+            QString steelType = loadSSMatch.captured(4);
+            QString truckType = loadSSMatch.captured(3);
+            QString yardName = loadSSMatch.captured(2);
 
             // 检查车辆是否已经在Map中
 
@@ -865,9 +880,9 @@ void NewOrder::generatePicture()
 
             // 获取匹配的操作行号和司机名字
             QString lineNumber = unloadSCMatch.captured(1);
-            QString steelType = unloadSCMatch.captured(2);
+            QString steelType = unloadSCMatch.captured(4);
             QString truckType = unloadSCMatch.captured(3);
-            QString yardName = unloadSCMatch.captured(5);
+            QString yardName = unloadSCMatch.captured(2);
 
             // 检查车辆是否已经在Map中
             if (!unloadActions.contains(truckType))
@@ -887,9 +902,9 @@ void NewOrder::generatePicture()
 
             // 获取匹配的操作行号和司机名字
             QString lineNumber = unloadSSMatch.captured(1);
-            QString steelType = unloadSSMatch.captured(2);
+            QString steelType = unloadSSMatch.captured(4);
             QString truckType = unloadSSMatch.captured(3);
-            QString yardName = unloadSSMatch.captured(5);
+            QString yardName = unloadSSMatch.captured(2);
 
             // 检查车辆是否已经在Map中
             if (!unloadActions.contains(truckType))
@@ -904,13 +919,28 @@ void NewOrder::generatePicture()
             unloadActions[truckType].append(yardName);
         }
     }
-    qDebug() << "loadActions" << loadActions;
-    qDebug() << "unloadActions" << unloadActions;
+    qDebug() <<"匹配到的司机有"<< driverNameList;
+    qDebug()<<"司机动作为"<< driverActions;
+    if(!loadActions.isEmpty() && !unloadActions.isEmpty())
+    {
+        qDebug() << "loadActions" << loadActions;
+        qDebug() << "unloadActions" << unloadActions;
+    }
+    else
+    {
+        qDebug() << "未定位到装载动作，请检查output文件";
+    }
 
     file.close();
+    if(!driverActions.isEmpty())
+    {
+        qDebug()<<driverActions;
+    }
+    else
+    {
+        qDebug() << "未定位司机到动作，请检查output文件";
 
-    qDebug()<<driverActions;
-
+    }
     foreach (QString driverName, driverNameList)
     {
         QString dotFileNamePath = QString("D:/QtProject/TranspotationSystem/outputFile/%1.dot").arg(driverName);
@@ -971,8 +1001,15 @@ void NewOrder::generatePicture()
         dotStream << "}" << "\n";
 
         dotFile.close();
+        if(dotFile.size() != 0)
+        {
+            qDebug() << "生成 dot 文件成功: " << dotFileNamePath;
+        }
+        else
+        {
+            qDebug() << "未生成 dot 文件: " ;
 
-        qDebug() << "生成 dot 文件成功: " << dotFileNamePath;
+        }
 
         QProcess process;
         // 设置要执行的命令
@@ -1000,6 +1037,7 @@ void NewOrder::generatePicture()
             ui->truckTableView->setVisible(false);
             ui->steelLabel->setVisible(false);
             pictureLabel->show();
+            ui->planButton->show();
             if (processPng.isNull())
             {
                 qDebug() << "Failed to load image from: " << processPng;
@@ -1052,7 +1090,6 @@ void NewOrder::on_planButton_clicked()
     {
         QPixmap processPng(picDirList[currentPicIndex]);
         pictureLabel->setPixmap(processPng);
-
         currentPicIndex = (currentPicIndex + 1) % picDirList.size();
     }
 }

@@ -82,6 +82,13 @@ void main_interface::onNavigationButtonClicked()
         ui->stackedWidget->setCurrentWidget(mYardInformation);
     }
 }
+void main_interface::setLoginUser(User *loginUser)
+{
+    user = *loginUser;
+    //向账号信息窗口传递当前用户信息
+    mAccountMangement->setUser(user);
+}
+
 
 
 

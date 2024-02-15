@@ -11,6 +11,7 @@
 #include <QRegularExpression>
 #include <QDebug>
 #include <QMap>
+#include <orderandaccount.h>
 namespace Ui {
 class NewOrder;
 }
@@ -18,7 +19,6 @@ class NewOrder;
 class NewOrder : public QWidget
 {
     Q_OBJECT
-
 public:
     explicit NewOrder(QWidget *parent = nullptr);
     ~NewOrder();
@@ -26,13 +26,9 @@ public:
 
 private slots:
     void on_selectDTButton_clicked();
-
     void on_selectSButton_clicked();
-
     void on_commitButton_clicked();
-
     void on_recreateButton_clicked();
-
     void onSteelTableViewDoubleClicked(QModelIndex index);
     void on_planButton_clicked();
 
@@ -50,7 +46,7 @@ private:
     void shiftTableView(bool bDriverWidget, bool bSteelWidget);
     void selectedDriver(int &);
     void selectedTruck(int &);
-    bool selectedSteel(QList<int> &selectedSteelIDs,
+    bool scanSelectedSteel(QList<int> &selectedSteelIDs,
                        QStringList &selectedSteelTypes,
                        QList<double> &selectedSteelLengths,
                        QList<double> &selectedSteelQuantitys,
@@ -58,9 +54,6 @@ private:
                        QList<int> &selectedSteelPrioritys,
                        QStringList &steelInitialPositions,
                        QStringList &steelGoalPositions);
-    void writeFile();
-    void writeDefine();
-    void writeInit();
     void queryDriver();
     void queryTruck();
     void querySteel();
@@ -101,6 +94,8 @@ private:
     QMap<QString, QStringList> loadActions;
     //用于记录车辆卸载钢材的关系
     QMap<QString, QStringList> unloadActions;
+    //保存PDDL命令行程序生成结果
+    QString outputFilePath = "D:/QtProject/TranspotationSystem/outputFile/output.txt";
 
 };
 
