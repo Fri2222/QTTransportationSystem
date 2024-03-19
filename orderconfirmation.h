@@ -42,6 +42,16 @@ private slots:
 
     void on_addButton_clicked();
 
+    void on_confirmPpushButton_clicked();
+
+    void on_cdtCancelPushButton_2_clicked();
+
+    void on_cancelPushButton_clicked();
+
+    void on_toolButton_2_clicked();
+
+    void on_toolButton_3_clicked();
+
 private:
     Ui::orderConfirmation *ui;
     QStackedWidget *mStackedWidget;

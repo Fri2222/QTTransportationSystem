@@ -1,4 +1,4 @@
-QT       += core gui sql
+QT       += core gui sql webchannel network  webenginewidgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -17,6 +17,7 @@ SOURCES += \
     login_window.cpp \
     main.cpp \
     main_interface.cpp \
+    maphtml.cpp \
     neworder.cpp \
     orderandaccount.cpp \
     orderconfirmation.cpp \
@@ -32,6 +33,7 @@ HEADERS += \
     enroll.h \
     login_window.h \
     main_interface.h \
+    maphtml.h \
     neworder.h \
     orderandaccount.h \
     orderconfirmation.h \
@@ -46,6 +48,7 @@ FORMS += \
     enroll.ui \
     login_window.ui \
     main_interface.ui \
+    maphtml.ui \
     neworder.ui \
     orderandaccount.ui \
     orderconfirmation.ui \

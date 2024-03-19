@@ -13,12 +13,12 @@ NewOrder::NewOrder(QWidget *parent) :
     pictureLabel->hide();
     orderID = -1;
     setFixedSize(660,330);
-
     ui->planButton->hide();
     ui->recreateButton->hide();
 
     bDriverWidget = false;
     bSteelWidget = true;
+    cost = 0;
 
     ui->driverTableView->setModel(&driverModel);
     ui->driverTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -49,7 +49,7 @@ NewOrder::NewOrder(QWidget *parent) :
         for(int conlumn = 6;conlumn < 7 ;conlumn++)
         {
             QComboBox* steelInitialPositionCmb = new QComboBox();
-            steelInitialPositionCmb->addItems({yardItems});
+            steelInitialPositionCmb->addItems({yardNameItems});
             steelInitialPositionCmb->setStyleSheet("QComboBox { border-radius: 3px; border: 1px; selection-color: black; selection-background-color: darkgray; } QFrame { border: 0px; } QComboBox::drop-down{background-color: white;}");
             ui->steelTableView->setIndexWidget(steelModel.index (row,conlumn), steelInitialPositionCmb);
             // 将 QComboBox 指针添加到 QVector 中
@@ -58,7 +58,7 @@ NewOrder::NewOrder(QWidget *parent) :
         for(int conlumn = 7;conlumn < 8 ;conlumn++)
         {
             QComboBox* steelGoalPositionCmb = new QComboBox();
-            steelGoalPositionCmb->addItems({yardItems});
+            steelGoalPositionCmb->addItems({yardNameItems});
             steelGoalPositionCmb->setStyleSheet("QComboBox { border-radius: 3px; border: 1px; selection-color: black; selection-background-color: darkgray; } QFrame { border: 0px; } QComboBox::drop-down{background-color: white;}");
             ui->steelTableView->setIndexWidget(steelModel.index (row,conlumn), steelGoalPositionCmb);
             // 将 QComboBox 指针添加到 QVector 中
@@ -103,7 +103,7 @@ void NewOrder::on_commitButton_clicked()
         orderWindow->sendWeight(selectedSteelWeights);
         orderWindow->sendInitialPosition(selectedSteelInitialPositions);
         orderWindow->sendGoalPosition(selectedSteelGoalPositions);
-        orderWindow->sendYardItem(yardItems);
+        orderWindow->sendYardItem(yardNameItems);
         orderWindow->showOrder();
         orderWindow->exec();
     }
@@ -117,9 +117,9 @@ void NewOrder::on_commitButton_clicked()
             QTextStream stream(&file);
 
             QString define = "";
-    //domain定义
+//domain定义
             define.append("(define (problem order_"+QString::number(steelIDItems[0])+"_p ) (:domain transportartionSystem)\n");
-        //object定义
+    //object定义
         //driver定义
             define.append("(:objects\n" + driverNameItems.join(" ") +" - driver\n");
         //truck和container定义
@@ -136,7 +136,7 @@ void NewOrder::on_commitButton_clicked()
             }
             define.append("- steel\n");
         //location定义
-            define.append(yardItems.join(" ") + " - location\n)");
+            define.append(yardAliasItems.join(" ") + " - location\n)");
             define.append("\n");
             stream << define ;
     //init定义
@@ -148,7 +148,7 @@ void NewOrder::on_commitButton_clicked()
             {
                 const QString& driverName = driverNameItems[i];
                 init.append("(= (license " + driverName + ") " + driverLicenseItems[i] + ")\n");
-                init.append("( driver-in " + driverName + " location1 )\n");
+                init.append("( driver-in " + driverName + " LOCATION1 )\n");
             }
             init.append("\n");
         //truck基本信息定义
@@ -158,7 +158,7 @@ void NewOrder::on_commitButton_clicked()
                 //const QString& truckPosition = truckPositionItems[i];
                 const QString& truckSpeed = truckSpeedItems[i];
 
-                init.append("( truck-in " + truckType + " location1 )\n");
+                init.append("( truck-in " + truckType + " LOCATION1 )\n");
 
                 //truck信息
                 init.append("(= (speed " + truckType +") " + truckSpeed + " )\n");
@@ -182,8 +182,8 @@ void NewOrder::on_commitButton_clicked()
         //道路的定义
             for(int i = 0;i < disYardIDItems.size();i++)
             {
-                init.append("( connected-by-way "+disYardNameItems[i]+" "+disOtherYardNameItems[i]+" )\n");
-                init.append("(= (distance "+disYardNameItems[i]+" "+disOtherYardNameItems[i]+" )"+QString::number(distanceItems[i])+")\n");
+                init.append("( connected-by-way "+disYardAliasItems[i]+" "+disOtherYardAliasItems[i]+" )\n");
+                init.append("(= (distance "+disYardAliasItems[i]+" "+disOtherYardAliasItems[i]+" )"+QString::number(distanceItems[i])+")\n");
             }
             init.append("\n");
         //选中的钢材信息
@@ -195,9 +195,11 @@ void NewOrder::on_commitButton_clicked()
                 init.append("(= (quantity "+ selectedSteelType[i] +"_"+ QString::number(steelIDItems[i])+") " +QString::number(selectedSteelQuantitys[i])+" )\n");
                 init.append("(= (weight-steel "+ selectedSteelType[i] +"_"+ QString::number(steelIDItems[i])+") " +QString::number(selectedSteelWeights[i])+" )\n");
                 init.append("(clear "+selectedSteelType[i] +"_"+ QString::number(steelIDItems[i])+")\n");
-                const QString& steelType = selectedSteelType[i];
-                const QString& steelInitialPosition = selectedSteelInitialPositions[i];
-                const QString& steelGoalPosition = selectedSteelGoalPositions[i];
+                QString steelType = selectedSteelType[i];
+                QString steelInitialPosition;
+                QString steelGoalPosition ;
+                steelInitialPosition = queryAlias(selectedSteelInitialPositions[i]);
+                steelGoalPosition = queryAlias(selectedSteelGoalPositions[i]);
                 init.append("(q1 " +steelType + "_"+QString::number(steelIDItems[i]) + ")\n");
                 init.append("( steel-in "+ steelType + "_"+QString::number(steelIDItems[i]) + " " + steelInitialPosition + ")\n");
                 init.append("( set-goal-location "+ steelType + "_"+QString::number(steelIDItems[i]) + " " + steelGoalPosition + ")\n");
@@ -224,62 +226,36 @@ void NewOrder::on_commitButton_clicked()
             stream << "\n)";
             file.close();
         }
-//命令行执行
-        // 设置工作目录
-        QString workingDirectory = "D:/MetricFF/";
-
-        // 创建一个 QProcess 对象
-        QProcess process;
-
-        // 设置工作目录
-        process.setWorkingDirectory(workingDirectory);
-
-        // 设置要执行的命令和参数
-        QString command = "ff-v2.1.exe";
-        QStringList arguments;
-        arguments << "-o" << "TransportationSystem_order_"+QString::number(steelIDItems[0])+"_pro.pddl" << "-f" << "order_"+QString::number(steelIDItems[0])+"_pro.pddl" << "-s" << "0";
-
-        // 启动进程
-        process.start(command, arguments);
-        qDebug() << command<<arguments;
-        // 等待进程完成
-        if (process.waitForFinished(10000))
-        {
-            // 读取命令输出
-            QString output;
-            while (process.canReadLine())
-            {
-                QString line = process.readLine();
-                output.append(line + "\n"); // 将每一行输出追加到字符串中
-            }
-
-            qDebug() << output;
-            // 将输出保存到文件
-            QFile outputFile(outputFilePath);
-            if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text))
-            {
-                QTextStream stream(&outputFile);
-                stream << output;
-                outputFile.close();
-                qDebug() << "PDDL输出文件保存在 " + outputFilePath;
-            }
-            else
-            {
-                qDebug() << "无法保存PDDL输出文件!";
-            }
-        }
-        else
-        {
-            qDebug() << "PDDL生成程序出错!";
-        }
-
     }
     else
     {
         QMessageBox::warning(this,"警告","请检查订单中的钢材");
     }
+    acquireActionList();
+    cmdPDDL(steelIDItems[0]);
+    calculateCost();
+    cmdPDDL(steelIDItems[0],1);
+    calculateCost();
+    cmdPDDL(steelIDItems[0],2);
+    int count = 3;
+    QString filePath = "D:/QtProject/TranspotationSystem/outputFile/output"+QString::number(count)+".txt";
+    while (true)
+    {
+        if (outputCompare("D:/QtProject/TranspotationSystem/outputFile/output" + QString::number(count - 2) + ".txt",
+                          "D:/QtProject/TranspotationSystem/outputFile/output" + QString::number(count - 1) + ".txt") == true || count == 10)
+        {
+            break; // 当两个文件内容相等或count达到10时，退出循环。
+        }
+        calculateCost();
+        cmdPDDL(steelIDItems[0],count);
+        count++;
+    }
+    acquireActionList(count-1);
     generatePicture();
-
+    writeMapMain();
+    bDriverWidget = false;
+    bSteelWidget = true;
+    shiftTableView(bDriverWidget,bSteelWidget);
 }
 void NewOrder::shiftTableView(bool bDriverWidget,bool bSteelWidget)
 {
@@ -446,11 +422,6 @@ void NewOrder::on_selectSButton_clicked()
 }
 
 
-void NewOrder::on_recreateButton_clicked()
-{
-
-}
-
 void NewOrder::selectedDriver(int &driverID)
 {
     QItemSelectionModel *selectionModel = ui->driverTableView->selectionModel();
@@ -594,6 +565,10 @@ void NewOrder::querySteel()
 {
 
 }
+
+
+
+//查询数据库填充PDDL中距离定义（查询所有地点）
 void NewOrder::queryDistance()
 {
     // 获取两个地点之间距离
@@ -617,28 +592,33 @@ void NewOrder::queryDistance()
         foreach (int queryDisYardID, disYardIDItems)
         {
             QSqlQuery disYardNameQuery;
-            disYardNameQuery.prepare("SELECT yardName FROM FreightYard WHERE yardID = :yardID");
+            disYardNameQuery.prepare("SELECT yardName, yardAlias FROM FreightYard WHERE yardID = :yardID");
             disYardNameQuery.bindValue(":yardID", queryDisYardID);
             if (disYardNameQuery.exec())
             {
                 if (disYardNameQuery.next())
                 {
                     QString disYardName = disYardNameQuery.value("yardName").toString();
+                    QString disYardAlias = disYardNameQuery.value("yardAlias").toString();
                     disYardNameItems << disYardName;
-                }
+                    disYardAliasItems << disYardAlias;
+                 }
+                qDebug() << "disYardAliasItems:"<< disYardAliasItems;
             }
         }
         foreach (int queryDisYardID, disOtherYardIDItems)
         {
             QSqlQuery disOtherYardNameQuery;
-            disOtherYardNameQuery.prepare("SELECT yardName FROM FreightYard WHERE yardID = :yardID");
+            disOtherYardNameQuery.prepare("SELECT yardName, yardAlias FROM FreightYard WHERE yardID = :yardID");
             disOtherYardNameQuery.bindValue(":yardID", queryDisYardID);
             if (disOtherYardNameQuery.exec())
             {
                 if (disOtherYardNameQuery.next())
                 {
                     QString disOtherYardName = disOtherYardNameQuery.value("yardName").toString();
+                    QString disOtherAliasName = disOtherYardNameQuery.value("yardAlias").toString();
                     disOtherYardNameItems << disOtherYardName;
+                    disOtherYardAliasItems << disOtherAliasName;
                 }
             }
         }
@@ -651,13 +631,15 @@ void NewOrder::queryDistance()
     QString yardSql = "SELECT * FROM FreightYard";
     if (yardQuery.exec(yardSql))
     {
-        yardItems.clear();
+        yardNameItems.clear();
 
         while (yardQuery.next())
         {
             QString yardName = yardQuery.value("yardName").toString();
+            QString yardAlias = yardQuery.value("yardAlias").toString();
             QString gasStation = yardQuery.value("gasStation").toString();
-            yardItems << yardName;
+            yardNameItems << yardName;
+            yardAliasItems << yardAlias;
             gasItems << gasStation;
         }
     }
@@ -754,8 +736,9 @@ void NewOrder::positioningPlan(int &startLine, int &endLine,int &planLength)
 
     file.close();
 }
-void NewOrder::generatePicture()
+void NewOrder::acquireActionList()
 {
+    initActionList();
     //(\\w+)一个捕获组，用于匹配一个或多个字母、数字或下划线字符
     //d 动作序号 DRIVE-WAY w 司机   w 车辆   w 地点  w 钢材（不捕获）
     QRegularExpression driverRegex("(\\d+): GET-IN (\\w+) (\\w+) (\\w+) \\w+");
@@ -789,8 +772,6 @@ void NewOrder::generatePicture()
 
     QTextStream in(&file);
     QString line;
-    QStringList driverNameList;
-    QStringList truckTypeList;
 
     // 使用正则表达式查找匹配项
     while (!in.atEnd())
@@ -919,8 +900,6 @@ void NewOrder::generatePicture()
             unloadActions[truckType].append(yardName);
         }
     }
-    qDebug() <<"匹配到的司机有"<< driverNameList;
-    qDebug()<<"司机动作为"<< driverActions;
     if(!loadActions.isEmpty() && !unloadActions.isEmpty())
     {
         qDebug() << "loadActions" << loadActions;
@@ -941,6 +920,211 @@ void NewOrder::generatePicture()
         qDebug() << "未定位司机到动作，请检查output文件";
 
     }
+}
+void NewOrder::acquireActionList(int count)
+{
+    initActionList();
+    //(\\w+)一个捕获组，用于匹配一个或多个字母、数字或下划线字符
+    //d 动作序号 DRIVE-WAY w 司机   w 车辆   w 地点  w 钢材（不捕获）
+    QRegularExpression driverRegex("(\\d+): GET-IN (\\w+) (\\w+) (\\w+) \\w+");
+
+    //d 动作序号 DRIVE-WAY w 司机  w 起始点  w 终止点   w 车辆 w 钢材（不捕获）
+    // 2: DRIVE-WAY SIXALXLETRUCK LOCATION1 LOCATION4 YU
+    QRegularExpression driveRegex("(\\d+): DRIVE-WAY (\\w+) (\\w+) (\\w+) (\\w+) \\w+", QRegularExpression::MultilineOption);
+
+    //d动作序号 MOVE-STEEL-CONTAINER w 地点 w 车辆   w 钢材名称  w 货箱
+    QRegularExpression loadSCRegex("(\\d+): MOVE-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    //d动作序号 MOVE-STEEL-STEEL w 地点  w 车辆  w 上层钢材  w 下层钢材   w 货箱
+    QRegularExpression loadSSRegex("(\\d+): MOVE-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    //d动作序号 UNLOAD-STEEL-CONTAINER  w 地点  w 车辆  w 钢材   w 货箱
+    QRegularExpression unloadSCRegex("(\\d+): UNLOAD-STEEL-CONTAINER (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    //d动作序号 UNLOAD-STEEL-STEEL  w 地点  w 车辆  w 上层钢材  w 下层钢材   w 货箱
+    QRegularExpression unloadSSRegex("(\\d+): UNLOAD-STEEL-STEEL (\\w+) (\\w+) (\\w+) (\\w+) (\\w+)", QRegularExpression::MultilineOption);
+    loadSCRegex.setPatternOptions(QRegularExpression::MultilineOption);
+
+    QString outputFilePath = "D:/QtProject/TranspotationSystem/outputFile/output"+QString::number(count)+".txt";
+    QFile file(outputFilePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qDebug() << "无法打开PDDL输出文件"+outputFilePath;
+        return;
+    }
+
+    QTextStream in(&file);
+    QString line;
+
+    // 使用正则表达式查找匹配项
+    while (!in.atEnd())
+    {
+        line = in.readLine();
+
+        QRegularExpressionMatch driverMatch = driverRegex.match(line);
+        QRegularExpressionMatch driveMatch = driveRegex.match(line);
+        QRegularExpressionMatch loadSCMatch = loadSCRegex.match(line);
+        QRegularExpressionMatch loadSSMatch = loadSSRegex.match(line);
+        QRegularExpressionMatch unloadSCMatch = unloadSCRegex.match(line);
+        QRegularExpressionMatch unloadSSMatch = unloadSSRegex.match(line);
+        if (driverMatch.hasMatch())
+        {
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = driverMatch.captured(1);
+            QString driverName = driverMatch.captured(2);
+
+            // 检查司机是否已经在Map中
+            if (!driverActions.contains(driverName))
+            {
+                driverActions.insert(driverName, QStringList());
+                driverNameList.append(driverName);
+            }
+        }
+        if (driveMatch.hasMatch())
+        {
+            //d 动作序号 w 车辆 w 起始点 w 终止点 w 司机
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = driveMatch.captured(1);
+            QString driveTruck = driveMatch.captured(5);
+            QString startYard = driveMatch.captured(3);
+            QString endYard = driveMatch.captured(4);
+            QString driverName = driveMatch.captured(2);
+
+            // 检查司机是否已经在Map中
+            if (!driverActions.contains(driverName))
+            {
+                driverActions.insert(driverName, QStringList());
+                driverNameList.append(driverName);
+            }
+            if (!driverLocationAliasList.contains(driverName))
+            {
+                driverLocationAliasList.insert(driverName, QStringList());
+            }
+            // 将操作行号添加到司机的操作列表中
+            driverActions[driverName].append(lineNumber);
+            driverActions[driverName].append(driveTruck);
+            driverActions[driverName].append(startYard);
+            driverActions[driverName].append(endYard);
+
+            //以司机姓名为主键值加途径的地点
+            driverLocationAliasList[driverName].append(startYard);
+            driverLocationAliasList[driverName].append(endYard);
+        }
+        qDebug() << "driverLocationAliasList"<<driverLocationAliasList;
+        if (loadSCMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = loadSCMatch.captured(1);
+            QString steelType = loadSCMatch.captured(4);
+            QString truckType = loadSCMatch.captured(3);
+            QString yardName = loadSCMatch.captured(2);
+
+
+            // 将操作行号添加到装卸的操作列表中
+            loadActions[truckType].append(truckType);
+            loadActions[truckType].append(lineNumber);
+            loadActions[truckType].append(steelType);
+            loadActions[truckType].append(yardName);
+        }
+        if (loadSSMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = loadSSMatch.captured(1);
+            QString steelType = loadSSMatch.captured(4);
+            QString truckType = loadSSMatch.captured(3);
+            QString yardName = loadSSMatch.captured(2);
+
+            // 检查车辆是否已经在Map中
+
+            // 将操作行号添加到装卸的操作列表中
+            loadActions[truckType].append(truckType);
+            loadActions[truckType].append(lineNumber);
+            loadActions[truckType].append(steelType);
+            loadActions[truckType].append(yardName);
+        }
+        if (unloadSCMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = unloadSCMatch.captured(1);
+            QString steelType = unloadSCMatch.captured(4);
+            QString truckType = unloadSCMatch.captured(3);
+            QString yardName = unloadSCMatch.captured(2);
+
+            // 检查车辆是否已经在Map中
+            if (!unloadActions.contains(truckType))
+            {
+                unloadActions.insert(truckType, QStringList());
+                truckTypeList.append(truckType);
+            }
+            // 将操作行号添加到装卸的操作列表中
+            unloadActions[truckType].append(truckType);
+            unloadActions[truckType].append(lineNumber);
+            unloadActions[truckType].append(steelType);
+            unloadActions[truckType].append(yardName);
+        }
+        if (unloadSSMatch.hasMatch())
+        {
+            //d动作序号 w 钢材名称  w 货箱  w 车辆  w 地点
+
+            // 获取匹配的操作行号和司机名字
+            QString lineNumber = unloadSSMatch.captured(1);
+            QString steelType = unloadSSMatch.captured(4);
+            QString truckType = unloadSSMatch.captured(3);
+            QString yardName = unloadSSMatch.captured(2);
+
+            // 检查车辆是否已经在Map中
+            if (!unloadActions.contains(truckType))
+            {
+                unloadActions.insert(truckType, QStringList());
+                truckTypeList.append(truckType);
+            }
+            // 将操作行号添加到装卸的操作列表中
+            unloadActions[truckType].append(truckType);
+            unloadActions[truckType].append(lineNumber);
+            unloadActions[truckType].append(steelType);
+            unloadActions[truckType].append(yardName);
+        }
+    }
+    if(!loadActions.isEmpty() && !unloadActions.isEmpty())
+    {
+        qDebug() << "loadActions" << loadActions;
+        qDebug() << "unloadActions" << unloadActions;
+    }
+    else
+    {
+        qDebug() << "未定位到装载动作，请检查output文件";
+    }
+
+    file.close();
+    if(!driverActions.isEmpty())
+    {
+        qDebug()<<driverActions;
+    }
+    else
+    {
+        qDebug() << "未定位司机到动作，请检查output文件";
+
+    }
+}
+void NewOrder::initActionList()
+{
+    driverActions.clear();
+    loadActions.clear();
+    unloadActions.clear();
+    driverNameList.clear();
+}
+void NewOrder::generatePicture()
+{
     foreach (QString driverName, driverNameList)
     {
         QString dotFileNamePath = QString("D:/QtProject/TranspotationSystem/outputFile/%1.dot").arg(driverName);
@@ -971,7 +1155,6 @@ void NewOrder::generatePicture()
             QString startYard = actions[i + 2];
             QString endYard = actions[i + 3];
             getSteelType(driveTruck,startYard,steelTypeList);
-            qDebug() << "steelList:" <<steelTypeList;
             QString joinedSteel = steelTypeList.join("\n");
             startYard = startYard +"_" + QString::number(i);
             endYard = endYard +"_" + QString::number(i);
@@ -1013,7 +1196,7 @@ void NewOrder::generatePicture()
 
         QProcess process;
         // 设置要执行的命令
-        QString command = "D:/software/graphviz/bin/dot";
+        QString command = "D:/Tools/Graphviz/bin/dot";
         QStringList arguments;
         arguments << "-Tpng";
         arguments << dotFileNamePath;
@@ -1027,7 +1210,6 @@ void NewOrder::generatePicture()
         if (process.waitForFinished())
         {
             // 将输出保存到文件
-            //QPixmap processPng("D:/QtProject/TranspotationSystem/outputFile/"+driverName+".png");
             QPixmap processPng(outputPath);
             pictureLabel->setPixmap(processPng);
             ui->label->setVisible(false);
@@ -1040,14 +1222,13 @@ void NewOrder::generatePicture()
             ui->planButton->show();
             if (processPng.isNull())
             {
-                qDebug() << "Failed to load image from: " << processPng;
+                qDebug() << "生成规划解的图片失败: " << processPng;
             }
         }
         else
         {
-            qDebug() << "Command Failed to Execute with error: " << process.errorString();
+            qDebug() << "生成规划解图片的命令行出现错误: " << process.errorString();
         }
-
     }
 }
 
@@ -1093,3 +1274,617 @@ void NewOrder::on_planButton_clicked()
         currentPicIndex = (currentPicIndex + 1) % picDirList.size();
     }
 }
+//计算driver-way的花费
+void NewOrder::driverCost()
+{
+    for (auto it = driverActions.constBegin(); it != driverActions.constEnd(); ++it)
+    {
+        // 假设 nameList 是包含所有 name 的 QStringList
+        QStringList driverList = driverActions.keys();
+
+        // 遍历 nameList
+        for (const QString& driver : driverList)
+        {
+             get_inCost();
+        }
+        QString name = it.key();        // 获取driverActions中人名
+        qDebug() << "name:" << name;
+        QList<QString> values = it.value();     // 获取对应的值列表
+        qDebug()<< "values:" << values;
+        // 遍历值列表
+        for (int i = 0; i < values.size(); ++i) {
+            QString value = values.at(i);
+
+            // 匹配到人名，cost + 0.1
+            //QList中索引从0开始
+            // 匹配到数字，读取数字后第二和第三个地点并查询数据库
+            //此处location是别名
+            if (i % 4 == 0 && (i + 3) < values.size())
+            {
+                QString truck = values.at(i + 1);
+                double speed = queryTruckSpeed(truck);
+                QString location1 = values.at(i + 2);
+                QString location2 = values.at(i + 3);
+                int location1ID = queryYardID(location1);
+                int location2ID = queryYardID(location2);
+                double distance = queryYardDistance(location1ID,location2ID);
+                drive_wayCost(distance , speed);
+            }
+        }
+    }
+}
+void NewOrder::drive_wayCost(double distance , double speed)
+{
+    cost += distance / speed;
+}
+qfloat16 NewOrder::queryTruckSpeed(QString truck)
+{
+    qfloat16 truckSpeed = -1;
+
+    // 准备查询语句
+    QSqlQuery query;
+    query.prepare("SELECT truckSpeed FROM Truck WHERE truckType = :truckType");
+    query.bindValue(":truckType", truck);
+
+    // 执行查询
+    if (query.exec()) {
+        // 如果查询成功，提取结果
+        if (query.next()) {
+            truckSpeed = query.value("truckSpeed").toDouble();
+            qDebug() << truck << "的速度"<< truckSpeed <<'\n';
+        }
+        else {
+
+            qDebug() << "没有查询到:" << truck << "的速度"<< '\n';
+        }
+    } else {
+        qDebug() << "规划解中速度查询失败:" << query.lastError().text()<< '\n';
+    }
+    return truckSpeed;
+}
+int NewOrder::queryYardID(QString yardAlias)
+{
+    QSqlQuery query;
+    int yardID = -1;
+    query.prepare("SELECT yardID FROM FreightYard WHERE yardAlias = :yardAlias");
+    query.bindValue(":yardAlias", yardAlias);
+
+    if (query.exec())
+    {
+        if (query.next())
+        {
+            yardID = query.value(0).toInt();
+            qDebug() << "yardID " << yardAlias << "为:" << yardID<< '\n';
+        }
+        else
+        {
+            qDebug() << "没找到ID" << yardAlias<< '\n';
+        }
+    }
+    else
+    {
+        qDebug() << "规划解中yardID查询失败:" << query.lastError().text();
+    }
+    return yardID;
+}
+qfloat16 NewOrder::queryYardDistance(int yardID,int otherYardID)
+{
+    qfloat16 distance = -1;
+    QSqlQuery query;
+    query.prepare("SELECT distance FROM Distance WHERE yardID = :yardID AND otherYardID = :otherYardID");
+    query.bindValue(":yardID", yardID);
+    query.bindValue(":otherYardID", otherYardID);
+
+    if (query.exec())
+    {
+        if (query.next())
+        {
+            distance = query.value(0).toDouble();
+            qDebug() << "地点1" << yardID << "地点2" << otherYardID << "之间距离:" << distance << '\n';
+        } else
+        {
+            qDebug() << "地点1" << yardID << "地点2" << otherYardID << "之间距离未查询到"<< '\n';
+        }
+    } else
+    {
+        qDebug() << "规划解中距离查询失败:" << query.lastError().text();
+    }
+    return distance;
+}
+void NewOrder::get_inCost()
+{
+    cost += 0.1;
+}
+void NewOrder::loadCost()
+{
+    for (auto it = loadActions.constBegin(); it != loadActions.constEnd(); ++it)
+    {
+        QString truckType = it.key();        // 获取driverActions中人名
+        qDebug() << "truckType:" << truckType;
+        QList<QString> values = it.value();     // 获取对应的值列表
+        qDebug()<< "values:" << values;
+        // 遍历值列表
+        for (int i = 0; i < values.size(); ++i)
+        {
+            QString value = values.at(i);
+            //loadActions QMap(("FIVEAXLETRUCK", QList("FIVEAXLETRUCK", "13", "PIPE_1", "LOCATION1",
+                                                        //"FIVEAXLETRUCK", "22", "BAR_0", "LOCATION1"))
+            //QList中索引从0开始
+            // 匹配到车辆，读取其后第一和第三个地点并查询数据库
+            if (i % 4 == 0 && (i + 3) < values.size())
+            {
+                QString steelPDDL;
+                steelPDDL = values.at(i + 2);
+                QRegularExpression regex("(\\w+)_(\\d+)");
+                QRegularExpressionMatch match = regex.match(steelPDDL);
+                if (match.hasMatch())
+                {
+                    QString steelType = match.captured(1); // 获取匹配的钢材名称
+                    QString stringSteelID = match.captured(2); // 获取匹配的钢材编号
+                    int steelID = stringSteelID.toInt();
+                    //从表格中获取钢材质量
+                    qfloat16 weight =querySteelWeightModel(steelID);
+                    load_unloadCost(weight);
+                }
+                else
+                {
+                    qDebug() << "未找到规划解的load";
+                }
+            }
+        }
+    }
+}
+void NewOrder::unloadCost()
+{
+    for (auto it = unloadActions.constBegin(); it != unloadActions.constEnd(); ++it)
+    {
+        QString truckType = it.key();        // 获取driverActions中人名
+        qDebug() << "truckType:" << truckType;
+        QList<QString> values = it.value();     // 获取对应的值列表
+        qDebug()<< "values:" << values;
+        // 遍历值列表
+        for (int i = 0; i < values.size(); ++i)
+        {
+            QString value = values.at(i);
+            //unloadActions QMap(("FIVEAXLETRUCK", QList("FIVEAXLETRUCK", "13", "PIPE_1", "LOCATION1",
+            //"FIVEAXLETRUCK", "22", "BAR_0", "LOCATION1"))
+            //QList中索引从0开始
+            // 匹配到车辆，读取其后第一和第三个地点并查询数据库
+            if (i % 4 == 0 && (i + 3) < values.size())
+            {
+                QString steelPDDL;
+                steelPDDL = values.at(i + 2);
+                QRegularExpression regex("(\\w+)_(\\d+)");
+                QRegularExpressionMatch match = regex.match(steelPDDL);
+                if (match.hasMatch())
+                {
+                    QString steelType = match.captured(1); // 获取匹配的钢材名称
+                    QString stringSteelID = match.captured(2); // 获取匹配的钢材编号
+                    int steelID = stringSteelID.toInt();
+                    //从表格中获取钢材质量
+                    qfloat16 weight =querySteelWeightModel(steelID);
+                    load_unloadCost(weight);
+                }
+                else
+                {
+                    qDebug() << "未找到规划解的unload";
+                }
+            }
+        }
+    }
+}
+qfloat16 NewOrder::querySteelWeightModel(int steelID)
+{
+    qfloat16 weight = -1;
+    QModelIndexList matches = steelModel.match(steelModel.index(0, 1), Qt::DisplayRole, steelID, -1, Qt::MatchExactly);
+    foreach (const QModelIndex &index, matches)
+    {
+        int row = index.row(); // 匹配行的索引
+        QStandardItem* singleSteelWeight = steelModel.item(row, 4); // 第5列的数据，索引从0开始
+        QStandardItem* quantity = steelModel.item(row, 5); // 第6列的数据
+
+        if (singleSteelWeight && quantity)
+        {
+            QString stringSingleWeight = singleSteelWeight->text(); // 第5列的数据
+            float dataSingleWeight = stringSingleWeight.toFloat(); // 将文本转换为浮点数
+            QString stringQuantity = quantity->text(); // 第6列的数据
+            float dataQuantity = stringQuantity.toFloat(); // 将文本转换为浮点数
+            weight = dataSingleWeight*  dataQuantity;
+        }
+        else
+        {
+            qDebug() << "无法获取第5和第6列的数据";
+        }
+    }
+
+    // 检查 item 是否有效，并获取数据
+
+    return weight;
+}
+qfloat16 NewOrder::querySteelWeightSQL(QString steelType)
+{
+    QSqlQuery query;
+    qfloat16 weight = -1;
+    //注意weight = 数据库中weight*quantity
+    query.prepare("SELECT steelWeight FROM Steel WHERE steelType = :steelType");
+    query.bindValue(":steelType", steelType);
+
+    if (query.exec())
+    {
+        if (query.next())
+        {
+            weight = query.value(0).toInt();
+            qDebug() << "weight " << steelType << "为:" << weight<< '\n';
+        }
+        else
+        {
+            qDebug() << "没找到重量" << steelType<< '\n';
+        }
+    }
+    else
+    {
+        qDebug() << "规划解中steelWeight查询失败:" << query.lastError().text();
+    }
+    return weight;
+
+}
+void NewOrder::load_unloadCost(qfloat16 weight)
+{
+    qDebug() << "weight:" <<weight;
+    cost += weight / 10;
+}
+bool NewOrder::outputCompare(const QString &outputFile1, const QString &outputFile2)
+{
+    QFile file1(outputFile1);
+    QFile file2(outputFile2);
+
+    if (!file1.open(QIODevice::ReadOnly | QIODevice::Text) || !file2.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "无法打开文件";
+        return false;
+    }
+
+    QTextStream stream1(&file1);
+    QTextStream stream2(&file2);
+
+    QString content1 = stream1.readAll();
+    QString content2 = stream2.readAll();
+
+    return content1 != content2;
+}
+void NewOrder::cmdPDDL(int steelIDItems_0)
+{
+    //命令行执行
+    // 设置工作目录
+    QString workingDirectory = "D:/MetricFF/";
+
+    // 创建一个 QProcess 对象
+    QProcess process;
+
+    // 设置工作目录
+    process.setWorkingDirectory(workingDirectory);
+
+    // 设置要执行的命令和参数
+    QString command = "ff-v2.1.exe";
+    QStringList arguments;
+    arguments << "-o" << "TransportationSystem_order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-f" << "order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-s" << "0";
+
+    // 启动进程
+    process.start(command, arguments);
+    // 等待进程完成
+    if (process.waitForFinished(10000))
+    {
+        // 读取命令输出
+        QString output;
+        while (process.canReadLine())
+        {
+            QString line = process.readLine();
+            output.append(line + "\n"); // 将每一行输出追加到字符串中
+        }
+        // 将输出保存到文件
+        QFile outputFile(outputFilePath);
+        if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QTextStream stream(&outputFile);
+            stream << output;
+            outputFile.close();
+        }
+        else
+        {
+            qDebug() << "无法保存PDDL输出文件!";
+        }
+    }
+    else
+    {
+        qDebug() << "PDDL生成程序出错!";
+    }
+}
+void NewOrder::cmdPDDL(int steelIDItems_0,qfloat16 cost)
+{
+    //命令行执行
+    // 设置工作目录
+    QString workingDirectory = "D:/MetricFF/";
+
+    // 创建一个 QProcess 对象
+    QProcess process;
+
+    // 设置工作目录
+    process.setWorkingDirectory(workingDirectory);
+
+    // 设置要执行的命令和参数
+    QString command = "ff-v2.1.exe";
+    QStringList arguments;
+    arguments << "-o" << "TransportationSystem_order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-f" << "order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-s" << "0" << "-b" << QString::number(cost);
+
+    // 启动进程
+    process.start(command, arguments);
+    // 等待进程完成
+    if (process.waitForFinished(10000))
+    {
+        // 读取命令输出
+        QString output;
+        while (process.canReadLine())
+        {
+            QString line = process.readLine();
+            output.append(line + "\n"); // 将每一行输出追加到字符串中
+        }
+        // 将输出保存到文件
+        QFile outputFile(outputFilePath);
+        if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QTextStream stream(&outputFile);
+            stream << output;
+            outputFile.close();
+        }
+        else
+        {
+            qDebug() << "无法保存PDDL输出文件!";
+        }
+    }
+    else
+    {
+        qDebug() << "PDDL生成程序出错!";
+    }
+}
+void NewOrder::cmdPDDL(int steelIDItems_0,qfloat16 cost,int count)
+{
+    QString filePath = "D:/QtProject/TranspotationSystem/outputFile/output"+QString::number(count)+".txt";
+    //命令行执行
+    // 设置工作目录
+    QString workingDirectory = "D:/MetricFF/";
+
+    // 创建一个 QProcess 对象
+    QProcess process;
+
+    // 设置工作目录
+    process.setWorkingDirectory(workingDirectory);
+
+    // 设置要执行的命令和参数
+    QString command = "ff-v2.1.exe";
+    QStringList arguments;
+    arguments << "-o" << "TransportationSystem_order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-f" << "order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-s" << "0" << "-b" << QString::number(cost);
+    // 启动进程
+    process.start(command, arguments);
+    // 等待进程完成
+    if (process.waitForFinished(10000))
+    {
+        // 读取命令输出
+        QString output;
+        while (process.canReadLine())
+        {
+            QString line = process.readLine();
+            output.append(line + "\n"); // 将每一行输出追加到字符串中
+        }
+        // 将输出保存到文件
+        QFile outputFile(filePath);
+        if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QTextStream stream(&outputFile);
+            stream << output;
+            outputFile.close();
+        }
+        else
+        {
+            qDebug() << "无法保存PDDL输出文件!";
+        }
+    }
+    else
+    {
+        qDebug() << "PDDL生成程序出错!";
+    }
+}
+void NewOrder::cmdPDDL(int steelIDItems_0,int count)
+{
+    QString filePath = "D:/QtProject/TranspotationSystem/outputFile/output"+QString::number(count)+".txt";
+    //命令行执行
+    // 设置工作目录
+    QString workingDirectory = "D:/MetricFF/";
+
+    // 创建一个 QProcess 对象
+    QProcess process;
+
+    // 设置工作目录
+    process.setWorkingDirectory(workingDirectory);
+
+    // 设置要执行的命令和参数
+    QString command = "ff-v2.1.exe";
+    QStringList arguments;
+
+    arguments << "-o" << "TransportationSystem_order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-f" << "order_"+QString::number(steelIDItems_0)+"_pro.pddl" << "-s" << "0" << "-b" << QString::number(cost);
+    qDebug() << "arguments" << arguments;
+    // 启动进程
+    process.start(command, arguments);
+    qDebug() << command<<arguments;
+    // 等待进程完成
+    if (process.waitForFinished(10000))
+    {
+        // 读取命令输出
+        QString output;
+        while (process.canReadLine())
+        {
+            QString line = process.readLine();
+            output.append(line + "\n"); // 将每一行输出追加到字符串中
+        }
+
+        qDebug() << output;
+        // 将输出保存到文件
+        QFile outputFile(filePath);
+        if (outputFile.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QTextStream stream(&outputFile);
+            stream << output;
+            outputFile.close();
+            qDebug() << "PDDL输出文件保存在 " + filePath;
+        }
+        else
+        {
+            qDebug() << "无法保存PDDL输出文件!";
+        }
+    }
+    else
+    {
+        qDebug() << "PDDL生成程序出错!";
+    }
+}
+void NewOrder::calculateCost()
+{
+    cost = 0;
+    qDebug() << "cost1" << cost;
+    driverCost();
+    qDebug() << "cost2" << cost;
+    loadCost();
+    qDebug() << "cost3" << cost;
+    unloadCost();
+    qDebug() << "cost3" << cost;
+}
+QStringList NewOrder::queryAlias(QStringList & yardNameList)
+{
+    QStringList yardAliasList;
+    foreach (QString yardName, yardNameList)
+    {
+        QSqlQuery disYardAliasQuery;
+        disYardAliasQuery.prepare("SELECT yardAlias FROM FreightYard WHERE yardName = :yardName");
+        disYardAliasQuery.bindValue(":yardName", yardName);
+        if (disYardAliasQuery.exec())
+        {
+            if (disYardAliasQuery.next())
+            {
+                QString yardAlias = disYardAliasQuery.value("yardAlias").toString();
+                yardAliasList << yardAlias;
+            }
+            qDebug() << "disYardAliasItems:"<< disYardAliasItems;
+        }
+    }
+    return yardAliasList;
+}
+QString NewOrder::queryAlias(QString & yardName)
+{
+    QString yardAlias;
+    QSqlQuery disYardAliasQuery;
+    disYardAliasQuery.prepare("SELECT yardAlias FROM FreightYard WHERE yardName = :yardName");
+    disYardAliasQuery.bindValue(":yardName", yardName);
+    if (disYardAliasQuery.exec())
+    {
+        if (disYardAliasQuery.next())
+        {
+            yardAlias = disYardAliasQuery.value("yardAlias").toString();
+        }
+        qDebug() << "disYardAliasItems:"<< disYardAliasItems;
+    }
+    return yardAlias;
+}
+void NewOrder::writeMapMain()
+{
+    QString startLocation;
+    QString endLocation;
+    Point startPoint;
+    Point endPoint;
+    QList<Point> approachPointList;
+    QList<Point> allPointList;
+    QList<Point> poiList; // 保存查询到的 POI 点的列表
+    queryPOI(poiList);
+    sortPoint(poiList, startPoint,endPoint,approachPointList,allPointList);
+    QFile file(mapMainFilePath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        // 清空文件内容
+        file.resize(0);
+        QTextStream stream(&file);
+        stream << "from functions import path, get_location_x_y, path, html_path, openHtml\n";
+        stream << "def main(start_location, end_location, start_point, approach_point, end_point):\n";
+        stream << "\tpath_data=path(start_location,end_location)\n";
+        stream << "\thtml_path(path_data,start_point,approach_point,end_point)\n";
+        stream << "\topenHtml()\n";
+        stream << "if __name__ == '__main__':\n";
+        stream << "\tstart_point = (\""+QString::number(startPoint.longitude, 'f', 6)+"\",\""+QString::number(startPoint.latitude, 'f', 6)+"\")\n";
+        stream << "\tend_point = (\""+QString::number(endPoint.longitude, 'f', 6)+"\",\""+QString::number(endPoint.latitude, 'f', 6)+"\")\n";
+        stream << "\tstart_location = \""+QString::number(startPoint.longitude, 'f', 6)+","+QString::number(startPoint.latitude, 'f', 6)+"\"\n";
+        stream << "\tend_location = \""+QString::number(endPoint.longitude, 'f', 6)+","+QString::number(endPoint.latitude, 'f', 6)+"\"\n";
+        stream << "\tapproach_point = (";
+        QStringList pointList; // 使用QStringList来存储所有点的字符串
+        foreach (Point point, approachPointList)
+        {
+            QString longitudeStr = QString::number(point.longitude, 'f', 6);
+            QString latitudeStr = QString::number(point.latitude, 'f', 6);
+            QString pointStr = QString("[%1,%2]").arg(longitudeStr).arg(latitudeStr);
+            pointList << pointStr; // 将每个点的字符串添加到列表中
+        }
+        // 使用join()方法将列表中的所有字符串使用逗号连接起来，避免了在最后一个点后面加逗号
+        QString pointsStr = pointList.join(",");
+        stream << pointsStr;
+        stream << ")\n"; // 在所有点添加完毕后闭合括号\n
+        stream << "\tmain(start_location, end_location, start_point, approach_point, end_point)\n";
+        file.close();
+    }
+    openMap();
+}
+void NewOrder::openMap()
+{
+    MapHtml *map = new MapHtml(this);
+    map->openMapHtml();
+}
+void NewOrder::queryPOI (QList<Point> &poiList)
+{
+
+    // 数据库中的表格为 FreightYard，其中包含 yardAlias、POI_longitude 和 POI_latitude 字段
+    foreach (const QString &key, driverLocationAliasList.keys())
+    {
+        QList<QString> locations = driverLocationAliasList.value(key);
+        foreach (const QString &location, locations)
+        {
+            QSqlQuery query;
+            query.prepare("SELECT POI_longitude, POI_latitude FROM FreightYard WHERE yardAlias = :yardAlias");
+            query.bindValue(":yardAlias", location);
+            if (query.exec() && query.next()) {
+                double longitude = query.value(0).toDouble();
+                double latitude = query.value(1).toDouble();
+                // 创建 Point 对象并存储到 poiList 列表中
+                Point poi(longitude, latitude);
+                poiList.append(poi);
+            } else {
+                qDebug() << "Error: Failed to execute query or no data found for location" << location;
+            }
+        }
+    }
+}
+void NewOrder::sortPoint(const QList<Point> &poiList, Point &startPoint, Point &endPoint, QList<Point> &approachPointList,QList<Point> &allPointList)
+{
+    // 清空之前的数据
+    approachPointList.clear();
+
+    // 将 poiList 中的第一个点设置为 startPoint
+    if (!poiList.isEmpty()) {
+        startPoint = poiList.first();
+    }
+
+    // 将 poiList 中的最后一个点设置为 endPoint
+    if (!poiList.isEmpty()) {
+        endPoint = poiList.last();
+    }
+
+    // 将 poiList 中除了第一个和最后一个点之外的其他点添加到 approachPointList 中
+    for (int i = 1; i < poiList.size() - 1; ++i) {
+        approachPointList.append(poiList[i]);
+    }
+
+}
+

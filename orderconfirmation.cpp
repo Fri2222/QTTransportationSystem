@@ -101,7 +101,7 @@ void orderConfirmation::generateLTLPy()
 }
 void orderConfirmation::on_cdtConformationPushButton_clicked()
 {
-//在UI中点击确认按钮
+//在添加条件的UI中点击确认按钮
     //获取表格视图中有特殊要求的钢材和要求的内容
     int lastRow = conditionModel.rowCount();
     for(int row = 0 ;row < lastRow ; ++row)
@@ -116,8 +116,12 @@ void orderConfirmation::on_cdtConformationPushButton_clicked()
         {
             if(specialRequirements == "before")
             {
-                ltlStatement.append("F( unload_");
+                ltlStatement.append("F(( unload_");
                 ltlStatement.append(specifySteel + "_" +specifyID);
+                ltlStatement.append(" & (!");
+                ltlStatement.append("unload_");
+                ltlStatement.append(targetSteel+ "_" +targetID);
+                ltlStatement.append("))");
                 ltlStatement.append(" U ( unload_");
                 ltlStatement.append(targetSteel+ "_" +targetID);
                 ltlStatement.append(" ))");
@@ -318,6 +322,7 @@ void orderConfirmation::dotGeneratesPDDL()
             stream << "\t:parameters (?s - steel)\n";
             stream << "\t:precondition (and \n";
             stream << "\t\t(automata ?s)\n";
+            stream << "\t\t(not (world))\n";
             stream << "\t\t(q";
             stream << t->firstState;
             stream << " ?s)\n";
@@ -549,7 +554,7 @@ void orderConfirmation::showOrder()
         QStandardItem* orderSteelWeight = new QStandardItem(QString::number(selectedSteelWeights[i]));
         QStandardItem* orderInitialPositon = new QStandardItem(steelInitialPositions[i]);
         QStandardItem* orderGoalPosition = new QStandardItem(steelGoalPositions[i]);
-        rowItems << orderSteelType << orderSteelWeight << orderInitialPositon << orderGoalPosition << new QStandardItem("");
+        rowItems << orderSteelType << orderSteelWeight << orderInitialPositon << orderGoalPosition;
         orderModel.appendRow(rowItems);
     }
     queryYard();
@@ -605,3 +610,75 @@ void orderConfirmation::queryYard()
         }
     }
 }
+
+void orderConfirmation::on_confirmPpushButton_clicked()
+{
+    //读取模板PDDLFile中内容写入newPDDLFile
+    QFile PDDLFile(PDDLFilePath);
+    if (!PDDLFile.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open PDDL file.";
+        return;
+    }
+    QByteArray PDDLData = PDDLFile.readAll();
+    QFile newPDDLFile("D://MetricFF//TransportationSystem_order_"+QString::number(selectedSteelIDs[0])+"_pro.pddl");
+    if (!newPDDLFile.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    {
+        qDebug() << "Failed to open new PDDL file.";
+        return;
+    }
+
+    newPDDLFile.write(PDDLData);
+    PDDLFile.close();
+
+    //解析dot文件生成新的action以追加的方式写在newPDDLFile
+    QTextStream stream(&newPDDLFile);
+    stream << "(:action transiton\n";
+    stream << "\t:parameters (?s - steel)\n";
+    stream << "\t:precondition (and\n";
+    stream << "\t\t(automata ?s)\n";
+    stream << "\t\t(not (world))\n";
+    stream << "\t\t(q1 ?s)\n";
+    stream << "\t)\n";
+    stream << "\t:effect (and \n";
+    stream << "\t\t(not (automata ?s))\n";
+    stream << "\t\t(world)\n";
+    stream << "\t\t(not (q1 ?s))\n";
+    stream << "\t\t(q1 ?s)\n";
+    stream << ")";                  //effect的括号
+    stream << ")";                  //action的括号
+    stream << ")";                  //define的括号
+    stream.flush();
+    newPDDLFile.close();
+    close();
+}
+
+
+void orderConfirmation::on_cdtCancelPushButton_2_clicked()
+{
+    close();
+}
+
+
+void orderConfirmation::on_cancelPushButton_clicked()
+{
+    close();
+}
+
+
+
+void orderConfirmation::on_toolButton_2_clicked()
+{
+    while(conditionModel.rowCount() > 0) {
+        conditionModel.removeRow(0);
+    }
+}
+
+
+void orderConfirmation::on_toolButton_3_clicked()
+{
+    int lastRow = conditionModel.rowCount() - 1;
+    if (lastRow >= 0) {
+        conditionModel.removeRow(lastRow);
+    }
+}
+

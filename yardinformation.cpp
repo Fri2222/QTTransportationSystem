@@ -12,6 +12,10 @@ YardInformation::YardInformation(QWidget *parent) :
     ui->tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     showDistance();
+    //generatePicture();
+    QPixmap distancePng(distancePicPath);
+    pictureLabel->setPixmap(distancePicPath);
+    pictureLabel->show();
 }
 
 YardInformation::~YardInformation()
@@ -115,42 +119,33 @@ void YardInformation::showDistance()
     {
         qDebug() << "fail to query distance";
     }
-    generatePicture();
+
 }
 
 void YardInformation::generatePicture()
 {
-    // 设置工作目录
-    QString workingDirectory = "D:/QtProject/TranspotationSystem/outputFile";
-
     // 创建一个 QProcess 对象
     QProcess process;
 
-    // 设置工作目录
-    process.setWorkingDirectory(workingDirectory);
-
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("PATH", "D:/software/graphviz/bin/"); // 添加 Graphviz 的路径
-    process.setProcessEnvironment(env);
-
     // 设置要执行的命令和参数
-    QString command = "D:/software/graphviz/bin/dot";
+    QString command = dotPath;
     QStringList arguments;
-    arguments << "-Tpng D:/QtProject/TranspotationSystem/outputFile/distance.dot";
-    arguments << "-o D:/QtProject/TranspotationSystem/outputFile/distance.png";
-
+    arguments << " -Tjpg";
+    arguments << distanceDocPath;
+    arguments << "-o";
+    arguments << distancePicPath;
+    qDebug() << command << arguments;
     // 启动进程
     process.start(command,arguments);
 
     // 等待进程完成
     if (process.waitForFinished())
-    {
+    {        
         // 将输出保存到文件
-        QString outputPath = "D:/QtProject/TranspotationSystem/outputFile/distance.png";
-        QPixmap distancePng(outputPath);
-        pictureLabel->setPixmap(distancePng);
+        QPixmap distancePng(distancePicPath);
+        pictureLabel->setPixmap(distancePicPath);
         pictureLabel->show();
-        qDebug() << "Command Success to Execute";
+        qDebug() << "货场距离信息图片生成";
     }
     else
     {

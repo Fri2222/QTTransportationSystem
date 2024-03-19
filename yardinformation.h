@@ -5,7 +5,7 @@
 #include <QStandardItemModel>
 #include <QtSql>
 #include <QMessageBox>
-#include <iostream>
+
 namespace Ui {
 class YardInformation;
 }
@@ -31,6 +31,9 @@ private:
     void IDQueryYardName(int yardId,QString &yardName);
     void generatePicture();
     QLabel *pictureLabel;
+    QString dotPath = "D:/Tools/Graphviz/bin/dot";
+    QString distanceDocPath = "D:/QtProject/TranspotationSystem/outputFile/distance.dot";
+    QString distancePicPath = "D:/QtProject/TranspotationSystem/outputFile/distance.jpg";
 };
 
 #endif // YARDINFORMATION_H
